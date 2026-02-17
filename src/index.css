@@ -1524,7 +1524,7 @@ html,body,#root{
   grid-template-columns:4px 50px 1fr auto auto auto auto 28px;
   align-items:center;
   gap:10px;
-  padding:8px 10px 8px 0;
+  padding:6px 10px 6px 0;
   cursor:pointer;
   transition:background 0.15s;
 }
@@ -1726,7 +1726,7 @@ html,body,#root{
    EXPANDED — Detailed scoreboard
    ================================================================ */
 .fm-details{
-  padding:4px 10px 14px;
+  padding:2px 8px 8px;
   animation:fmSlideDown 0.25s ease-out;
 }
 @keyframes fmSlideDown{
@@ -1738,7 +1738,7 @@ html,body,#root{
 .fm-scoreboard{
   display:flex;
   flex-direction:column;
-  gap:4px;
+  gap:3px;
   border-radius:8px;
   overflow:hidden;
 }
@@ -1747,7 +1747,7 @@ html,body,#root{
 .fm-sb-team{
   display:flex;
   flex-direction:column;
-  border-radius:8px;
+  border-radius:6px;
   overflow:hidden;
   background:rgba(8,4,18,0.3);
   border:1px solid rgba(184,107,255,0.15);
@@ -1756,10 +1756,10 @@ html,body,#root{
 /* Team header row */
 .fm-sb-team-header{
   display:grid;
-  grid-template-columns:32px 180px 1fr auto;
+  grid-template-columns:28px 170px 1fr auto;
   align-items:center;
-  padding:8px 12px;
-  font-size:11px;
+  padding:5px 10px;
+  font-size:10px;
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:0.08em;
@@ -1774,7 +1774,7 @@ html,body,#root{
   font-size:9px;
   color:rgba(255,255,255,0.6);
   text-align:center;
-  min-width:162px;
+  min-width:155px;
   font-family:'Montserrat',sans-serif;
 }
 .fm-sb-ally{
@@ -1791,10 +1791,10 @@ html,body,#root{
 /* Column labels in header */
 .fm-sb-team-header .fm-sb-cols{
   display:grid;
-  grid-template-columns:60px 100px 80px 50px 60px 70px;
-  gap:4px;
+  grid-template-columns:55px 90px 70px 45px 55px 65px;
+  gap:3px;
   text-align:center;
-  font-size:10px;
+  font-size:9px;
   font-weight:700;
   color:rgba(255,255,255,0.85);
   text-transform:uppercase;
@@ -1804,9 +1804,9 @@ html,body,#root{
 /* Player row */
 .fm-sb-row{
   display:grid;
-  grid-template-columns:32px 180px 1fr auto;
+  grid-template-columns:28px 170px 1fr auto;
   align-items:center;
-  padding:6px 12px;
+  padding:3px 10px;
   background:rgba(8,4,18,0.25);
   border-bottom:1px solid rgba(184,107,255,0.06);
   transition:background 0.15s;
@@ -1828,13 +1828,13 @@ html,body,#root{
   min-width:0;
 }
 .fm-sb-champ{
-  width:30px;
-  height:30px;
+  width:26px;
+  height:26px;
   border-radius:50%;
   object-fit:cover;
   border:1.5px solid rgba(184,107,255,0.28);
   flex-shrink:0;
-  box-shadow:0 1px 6px rgba(0,0,0,0.3);
+  box-shadow:0 1px 4px rgba(0,0,0,0.3);
 }
 .fm-sb-name{
   display:flex;
@@ -1842,7 +1842,7 @@ html,body,#root{
   min-width:0;
 }
 .fm-sb-name span{
-  font-size:12px;
+  font-size:11px;
   font-weight:600;
   color:#fff;
   white-space:nowrap;
@@ -1850,7 +1850,7 @@ html,body,#root{
   text-overflow:ellipsis;
 }
 .fm-sb-name small{
-  font-size:10px;
+  font-size:9px;
   color:rgba(255,255,255,0.55);
 }
 
@@ -1864,10 +1864,10 @@ html,body,#root{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:24px;
-  height:24px;
+  width:22px;
+  height:22px;
   border-radius:50%;
-  font-size:10px;
+  font-size:9px;
   font-weight:800;
   font-family:'Montserrat',sans-serif;
   line-height:1;
@@ -1918,10 +1918,10 @@ html,body,#root{
 /* Stat columns in player row */
 .fm-sb-row .fm-sb-cols{
   display:grid;
-  grid-template-columns:60px 100px 80px 50px 60px 70px;
-  gap:4px;
+  grid-template-columns:55px 90px 70px 45px 55px 65px;
+  gap:3px;
   text-align:center;
-  font-size:11px;
+  font-size:10px;
   color:rgba(255,255,255,0.88);
 }
 .fm-sb-kda{
@@ -1969,13 +1969,13 @@ html,body,#root{
 /* Items in scoreboard row */
 .fm-sb-items{
   display:flex;
-  gap:2px;
+  gap:1px;
   justify-content:flex-end;
 }
 .fm-sb-item{
-  width:24px;
-  height:24px;
-  border-radius:4px;
+  width:22px;
+  height:22px;
+  border-radius:3px;
   background:rgba(184,107,255,0.06);
   border:1px solid rgba(184,107,255,0.12);
   overflow:hidden;
@@ -1998,10 +1998,10 @@ html,body,#root{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:20px;
-  margin-top:10px;
-  padding:10px 20px;
-  border-radius:10px;
+  gap:18px;
+  margin-top:4px;
+  padding:6px 16px;
+  border-radius:8px;
   background:rgba(8,4,18,0.45);
   border:1px solid rgba(184,107,255,0.28);
   backdrop-filter:blur(6px);
@@ -2014,18 +2014,18 @@ html,body,#root{
   min-width:120px;
 }
 .fm-total-side span:first-child{
-  font-size:14px;
+  font-size:13px;
   font-weight:700;
 }
 .fm-total-side span:last-child{
-  font-size:11px;
+  font-size:10px;
   color:var(--text-muted);
 }
 .fm-total-ally span:first-child{ color:#50c878; }
 .fm-total-enemy span:first-child{ color:#ff5050; }
 .fm-total-vs{
   font-family:'Cinzel',serif;
-  font-size:14px;
+  font-size:12px;
   font-weight:800;
   color:var(--text-muted);
   opacity:0.6;
