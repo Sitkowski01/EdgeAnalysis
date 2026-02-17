@@ -309,6 +309,32 @@ type MatchParticipant = {
   tripleKills: number
   quadraKills: number
   pentaKills: number
+  // === Map objectives & events ===
+  turretKills: number
+  inhibitorKills: number
+  dragonKills: number
+  baronKills: number
+  firstBloodKill: boolean
+  firstBloodAssist: boolean
+  firstTowerKill: boolean
+  firstTowerAssist: boolean
+  objectivesStolen: number
+  objectivesStolenAssists: number
+  damageDealtToObjectives: number
+  damageDealtToTurrets: number
+  damageDealtToBuildings: number
+  // === Utility & team contribution ===
+  timeCCingOthers: number
+  totalTimeCCDealt: number
+  totalHeal: number
+  totalHealsOnTeammates: number
+  totalDamageShieldedOnTeammates: number
+  // === Survivability ===
+  longestTimeSpentLiving: number
+  // === Solo performance ===
+  soloKills: number
+  largestKillingSpree: number
+  killingSprees: number
 }
 
 type MatchData = {
@@ -346,106 +372,230 @@ function pluralGry(n: number): string {
   return 'gier'
 }
 
-// Oblicz Impact Score dla pojedynczego meczu
+// Oblicz Impact Score dla pojedynczego meczu (0-10)
 function calculateMatchImpact(p: MatchParticipant, gameDuration: number): number {
   const minutes = gameDuration / 60
+  if (minutes <= 0) return 0
   
-  // KDA component (0-3 points)
+  // KDA component (0-2.5 pts)
   const kda = p.deaths === 0 ? (p.kills + p.assists) : (p.kills + p.assists) / p.deaths
-  const kdaScore = Math.min(kda / 2, 3)
+  const kdaScore = Math.min(kda / 3, 2.5)
   
-  // CS per minute (0-2 points)
-  const csPerMin = (p.totalMinionsKilled + p.neutralMinionsKilled) / minutes
-  const csScore = Math.min(csPerMin / 5, 2)
+  // CS per minute (0-1.5 pts)
+  const csPerMin = (p.totalMinionsKilled + (p.neutralMinionsKilled || 0)) / minutes
+  const csScore = Math.min(csPerMin / 7, 1.5)
   
-  // Vision per minute (0-1.5 points)
-  const visionPerMin = p.visionScore / minutes
-  const visionScore = Math.min(visionPerMin / 1.5, 1.5)
+  // Vision per minute (0-1 pt)
+  const visionPerMin = (p.visionScore || 0) / minutes
+  const visionScore = Math.min(visionPerMin / 1.5, 1)
   
-  // Damage per minute (0-2 points)
-  const dmgPerMin = p.totalDamageDealtToChampions / minutes
-  const dmgScore = Math.min(dmgPerMin / 800, 2)
+  // Damage per minute (0-1.5 pts)
+  const dmgPerMin = (p.totalDamageDealtToChampions || 0) / minutes
+  const dmgScore = Math.min(dmgPerMin / 800, 1.5)
   
-  // Gold efficiency (0-1.5 points)
-  const goldPerMin = p.goldEarned / minutes
-  const goldScore = Math.min(goldPerMin / 400, 1.5)
+  // Gold efficiency (0-1 pt)
+  const goldPerMin = (p.goldEarned || 0) / minutes
+  const goldScore = Math.min(goldPerMin / 450, 1)
+  
+  // === MAP IMPACT (0-2.5 pts total) ===
+  // Objective kills: turrets, inhibs, dragons, barons
+  const objKills = (p.turretKills || 0) * 0.3 + (p.inhibitorKills || 0) * 0.5 + (p.dragonKills || 0) * 0.6 + (p.baronKills || 0) * 1.0
+  const objScore = Math.min(objKills, 1.5)
+  
+  // Objective damage contribution
+  const objDmgPerMin = (p.damageDealtToObjectives || 0) / minutes
+  const objDmgScore = Math.min(objDmgPerMin / 600, 1)
   
   // Win bonus (0 or 1)
   const winBonus = p.win ? 1 : 0
   
-  const total = kdaScore + csScore + visionScore + dmgScore + goldScore + winBonus
+  // Penalties
+  const deathPenalty = Math.min((p.deaths / minutes) * 0.8, 2)
+  
+  const total = kdaScore + csScore + visionScore + dmgScore + goldScore + objScore + objDmgScore + winBonus - deathPenalty
   return Math.min(Math.max(total, 0), 10)
 }
 
 // ============================================================
-// RANKING SYSTEM — ocena wszystkich 10 graczy w meczu (1 = MVP)
+// RANKING SYSTEM — EdgeScore™ — ocena wszystkich 10 graczy
+// Bierzemy pod uwagę: statystyki, obiektywy mapowe, CC, heal/shield,
+// first blood, solo kills, kille spree, steal obieektywów,
+// i jak bardzo przyczynił się do wygrania meczu.
 // ============================================================
-function rankPlayersInMatch(participants: MatchParticipant[], gameDuration: number): Map<string, { rank: number; score: number }> {
+type PlayerScore = {
+  rank: number
+  score: number
+  breakdown: {
+    combat: number      // KDA + multi kills + solo kills + sprees
+    damage: number      // DMG share + DPM
+    objectives: number  // Turrets, inhibs, dragons, barons, obj DMG, steals
+    economy: number     // Gold, CS
+    vision: number      // Vision score, wards
+    utility: number     // CC, heals, shields, tanking
+    clutch: number      // First blood, first tower, objective steals, survivability  
+    winContribution: number // How much you drove the win
+  }
+}
+
+function rankPlayersInMatch(
+  participants: MatchParticipant[],
+  gameDuration: number,
+  teams?: MatchData['info']['teams']
+): Map<string, PlayerScore> {
   const minutes = gameDuration / 60
   if (minutes <= 0) return new Map()
 
-  // Aggregate totals for relative scoring
+  // ——— Aggregate totals for relative scoring ———
   const totalKills = Math.max(participants.reduce((s, p) => s + p.kills, 0), 1)
   const totalDmg = Math.max(participants.reduce((s, p) => s + (p.totalDamageDealtToChampions || 0), 0), 1)
   const totalGold = Math.max(participants.reduce((s, p) => s + (p.goldEarned || 0), 0), 1)
-  const totalCS = Math.max(participants.reduce((s, p) => s + p.totalMinionsKilled + (p.neutralMinionsKilled || 0), 0), 1)
   const totalVision = Math.max(participants.reduce((s, p) => s + (p.visionScore || 0), 0), 1)
   const totalDmgTaken = Math.max(participants.reduce((s, p) => s + (p.totalDamageTaken || 0), 0), 1)
+  const totalObjDmg = Math.max(participants.reduce((s, p) => s + (p.damageDealtToObjectives || 0), 0), 1)
+  const totalCC = Math.max(participants.reduce((s, p) => s + (p.timeCCingOthers || 0), 0), 1)
+  const totalHealing = Math.max(participants.reduce((s, p) => s + (p.totalHealsOnTeammates || 0) + (p.totalDamageShieldedOnTeammates || 0), 0), 1)
 
-  // Per-team kill participation
+  // Per-team stats
   const teamKills: Record<number, number> = {}
-  participants.forEach(p => { teamKills[p.teamId] = (teamKills[p.teamId] || 0) + p.kills })
+  const teamGold: Record<number, number> = {}
+  const teamDmg: Record<number, number> = {}
+  participants.forEach(p => {
+    teamKills[p.teamId] = (teamKills[p.teamId] || 0) + p.kills
+    teamGold[p.teamId] = (teamGold[p.teamId] || 0) + (p.goldEarned || 0)
+    teamDmg[p.teamId] = (teamDmg[p.teamId] || 0) + (p.totalDamageDealtToChampions || 0)
+  })
+
+  // Team objective data
+  const teamObjectives: Record<number, { barons: number; dragons: number; towers: number }> = {}
+  if (teams) {
+    teams.forEach(t => {
+      teamObjectives[t.teamId] = {
+        barons: t.objectives?.baron?.kills || 0,
+        dragons: t.objectives?.dragon?.kills || 0,
+        towers: t.objectives?.tower?.kills || 0
+      }
+    })
+  }
 
   const scored = participants.map(p => {
     const kda = p.deaths === 0 ? (p.kills + p.assists) * 1.5 : (p.kills + p.assists) / p.deaths
     const cs = p.totalMinionsKilled + (p.neutralMinionsKilled || 0)
     const myTeamKills = Math.max(teamKills[p.teamId] || 1, 1)
+    const myTeamGold = Math.max(teamGold[p.teamId] || 1, 1)
+    const myTeamDmg = Math.max(teamDmg[p.teamId] || 1, 1)
     const killParticipation = (p.kills + p.assists) / myTeamKills
 
-    // 1) KDA rating (0–20 pts) — most important
-    const kdaScore = Math.min(kda / 6, 1) * 20
+    // ═══════════════════════════════════════════════
+    // 1) COMBAT (max ~25 pts) — KDA, multi-kills, solo kills, sprees
+    // ═══════════════════════════════════════════════
+    const kdaPts = Math.min(kda / 5, 1) * 12
+    const kpPts = Math.min(killParticipation, 1) * 6
+    const multiKillPts = Math.min(
+      (p.doubleKills || 0) * 0.5 +
+      (p.tripleKills || 0) * 1.5 +
+      (p.quadraKills || 0) * 3 +
+      (p.pentaKills || 0) * 7, 7
+    )
+    const soloPts = Math.min((p.soloKills || 0) * 1.2, 4)  // outplaying opponents 1v1
+    const spreePts = Math.min((p.largestKillingSpree || 0) * 0.3, 3) // domination
+    const deathPenalty = Math.min((p.deaths / minutes) * 2.5, 7)
+    const combat = Math.max(kdaPts + kpPts + multiKillPts + soloPts + spreePts - deathPenalty, 0)
 
-    // 2) Damage share (0–18 pts)
-    const dmgShare = (p.totalDamageDealtToChampions || 0) / totalDmg
-    const dmgScore = Math.min(dmgShare / 0.15, 1) * 18
+    // ═══════════════════════════════════════════════
+    // 2) DAMAGE (max ~18 pts) — share of total + DPM
+    // ═══════════════════════════════════════════════
+    const dmgSharePts = Math.min((p.totalDamageDealtToChampions || 0) / totalDmg / 0.15, 1) * 10
+    const dpmPts = Math.min((p.totalDamageDealtToChampions || 0) / minutes / 700, 1) * 5
+    const teamDmgSharePts = Math.min((p.totalDamageDealtToChampions || 0) / myTeamDmg / 0.25, 1) * 3
+    const damage = dmgSharePts + dpmPts + teamDmgSharePts
 
-    // 3) Gold share (0–12 pts)
-    const goldShare = (p.goldEarned || 0) / totalGold
-    const goldScore = Math.min(goldShare / 0.14, 1) * 12
+    // ═══════════════════════════════════════════════
+    // 3) OBJECTIVES (max ~20 pts) — the BIG differentiator
+    // Turrets, inhibitors, dragons, barons, obj damage, steals
+    // ═══════════════════════════════════════════════
+    const turretPts = Math.min((p.turretKills || 0) * 1.5, 4)
+    const inhibPts = Math.min((p.inhibitorKills || 0) * 2, 3)
+    const dragonPts = Math.min((p.dragonKills || 0) * 1.5, 3)
+    const baronPts = Math.min((p.baronKills || 0) * 2.5, 3)
+    const objDmgShare = (p.damageDealtToObjectives || 0) / totalObjDmg
+    const objDmgPts = Math.min(objDmgShare / 0.15, 1) * 4
+    const stealPts = ((p.objectivesStolen || 0) + (p.objectivesStolenAssists || 0) * 0.5) * 3
+    const stealCapped = Math.min(stealPts, 5) // smite steals are huge
+    const objectives = turretPts + inhibPts + dragonPts + baronPts + objDmgPts + stealCapped
 
-    // 4) Kill participation (0–15 pts)
-    const kpScore = Math.min(killParticipation, 1) * 15
-
-    // 5) CS per minute (0–10 pts)
+    // ═══════════════════════════════════════════════
+    // 4) ECONOMY (max ~10 pts) — gold, CS
+    // ═══════════════════════════════════════════════
+    const goldSharePts = Math.min((p.goldEarned || 0) / totalGold / 0.12, 1) * 5
     const csPerMin = cs / minutes
-    const csScore = Math.min(csPerMin / 9, 1) * 10
+    const csPts = Math.min(csPerMin / 8, 1) * 3
+    const goldEfficiency = myTeamGold > 0 ? (p.goldEarned || 0) / myTeamGold : 0
+    const goldEffPts = Math.min(goldEfficiency / 0.25, 1) * 2
+    const economy = goldSharePts + csPts + goldEffPts
 
-    // 6) Vision contribution (0–8 pts)
-    const visionShare = (p.visionScore || 0) / totalVision
-    const visionScoreVal = Math.min(visionShare / 0.15, 1) * 8
+    // ═══════════════════════════════════════════════
+    // 5) VISION (max ~8 pts) — score, wards placed/killed
+    // ═══════════════════════════════════════════════
+    const visionSharePts = Math.min((p.visionScore || 0) / totalVision / 0.13, 1) * 4
+    const wardsPerMinPts = Math.min(((p.wardsPlaced || 0) + (p.wardsKilled || 0)) / minutes / 1.5, 1) * 2
+    const controlWardPts = Math.min((p.visionWardsBoughtInGame || 0) * 0.5, 2)
+    const vision = visionSharePts + wardsPerMinPts + controlWardPts
 
-    // 7) Tanking share for frontliners (0–5 pts)
+    // ═══════════════════════════════════════════════
+    // 6) UTILITY (max ~12 pts) — CC, heals, shields, tanking
+    // ═══════════════════════════════════════════════
+    const ccShare = (p.timeCCingOthers || 0) / totalCC
+    const ccPts = Math.min(ccShare / 0.15, 1) * 4
+    const healShieldShare = ((p.totalHealsOnTeammates || 0) + (p.totalDamageShieldedOnTeammates || 0)) / totalHealing
+    const healShieldPts = Math.min(healShieldShare / 0.15, 1) * 4
     const tankShare = (p.totalDamageTaken || 0) / totalDmgTaken
-    const tankScore = Math.min(tankShare / 0.15, 1) * 5
+    const tankPts = Math.min(tankShare / 0.15, 1) * 4
+    const utility = ccPts + healShieldPts + tankPts
 
-    // 8) Multi-kills bonus (0–7 pts)
-    const multiKills = (p.doubleKills || 0) * 0.5 + (p.tripleKills || 0) * 1.5 + (p.quadraKills || 0) * 3 + (p.pentaKills || 0) * 7
-    const multiScore = Math.min(multiKills, 7)
+    // ═══════════════════════════════════════════════
+    // 7) CLUTCH / MAP PRESSURE (max ~12 pts)
+    // First blood, first tower, steals, surviving, turret DMG
+    // ═══════════════════════════════════════════════
+    const firstBloodPts = (p.firstBloodKill ? 2 : 0) + (p.firstBloodAssist ? 1 : 0)
+    const firstTowerPts = (p.firstTowerKill ? 2 : 0) + (p.firstTowerAssist ? 1 : 0)
+    const towerDmgPts = Math.min((p.damageDealtToTurrets || p.damageDealtToBuildings || 0) / minutes / 200, 1) * 3
+    const survivalPts = Math.min((p.longestTimeSpentLiving || 0) / (gameDuration * 0.4), 1) * 2
+    const levelAdvPts = Math.min(p.champLevel / 18, 1) * 2 // high level = consistent presence
+    const clutch = Math.min(firstBloodPts + firstTowerPts + towerDmgPts + survivalPts + levelAdvPts, 12)
 
-    // 9) Death penalty — dying a lot hurts
-    const deathPenalty = Math.min((p.deaths / minutes) * 3, 8)
+    // ═══════════════════════════════════════════════
+    // 8) WIN CONTRIBUTION (max ~10 pts)
+    // How much of your team's output was YOU?
+    // ═══════════════════════════════════════════════
+    const teamKillShare = (p.kills + p.assists) / (myTeamKills + 1) // KP as win driver
+    const teamGoldShare = (p.goldEarned || 0) / myTeamGold
+    const teamDmgPct = (p.totalDamageDealtToChampions || 0) / myTeamDmg
+    // Weighted average of how much you carried for the team
+    const carryIndex = teamKillShare * 0.35 + teamDmgPct * 0.35 + teamGoldShare * 0.3
+    const winMultiplier = p.win ? 1.5 : 0.7 // winners get bonus, losers diminished
+    const winContribution = Math.min(carryIndex * winMultiplier * 15, 10)
 
-    // 10) Win bonus
-    const winBonus = p.win ? 3 : 0
+    // ═══════════════════════════════════════════════
+    // TOTAL — theoretical max ~115, normalize to 0-100
+    // ═══════════════════════════════════════════════
+    const rawTotal = combat + damage + objectives + economy + vision + utility + clutch + winContribution
+    const normalized = Math.min(rawTotal, 100)
 
-    const raw = kdaScore + dmgScore + goldScore + kpScore + csScore + visionScoreVal + tankScore + multiScore + winBonus - deathPenalty
-    return { puuid: p.puuid, score: Math.max(raw, 0) }
+    return {
+      puuid: p.puuid,
+      score: normalized,
+      breakdown: { combat, damage, objectives, economy, vision, utility, clutch, winContribution }
+    }
   })
 
-  // Sort descending by score → rank 1 = best
+  // Sort descending → rank 1 = MVP
   scored.sort((a, b) => b.score - a.score)
-  const result = new Map<string, { rank: number; score: number }>()
-  scored.forEach((s, i) => result.set(s.puuid, { rank: i + 1, score: s.score }))
+  const result = new Map<string, PlayerScore>()
+  scored.forEach((s, i) => result.set(s.puuid, {
+    rank: i + 1,
+    score: s.score,
+    breakdown: s.breakdown
+  }))
   return result
 }
 
@@ -1417,11 +1567,9 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
               return `${days}d temu`
             })() : ''
             
-            // Impact score for this match
-            const impact = calculateMatchImpact(p, match.info.gameDuration)
-            
-            // Ranking all 10 players
-            const rankings = rankPlayersInMatch(match.info.participants, match.info.gameDuration)
+            // Ranking all 10 players — EdgeScore
+            const rankings = rankPlayersInMatch(match.info.participants, match.info.gameDuration, match.info.teams)
+            const myRank = rankings.get(p.puuid)
             
             // Item images helper — guard against undefined/NaN/0
             const itemImg = (itemId: number | undefined) => (itemId && itemId > 0) ? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${itemId}.png` : null
@@ -1451,7 +1599,8 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                     <span>{p.totalDamageDealtToChampions?.toLocaleString() || 0} DMG</span>
                   </div>
                   <div className="fm-meta">
-                    <span className="fm-impact">Impact <b>{impact.toFixed(1)}</b></span>
+                    <span className="fm-impact">EdgeScore <b>{myRank?.score.toFixed(0) || '?'}</b></span>
+                    <span className={`fm-rank-inline rank-${myRank?.rank || 10}`}>#{myRank?.rank || '?'}{myRank?.rank === 1 ? ' MVP' : ''}</span>
                     <span className="fm-time">{duration} min</span>
                     {timeAgo && <span className="fm-ago">{timeAgo}</span>}
                   </div>
@@ -1479,6 +1628,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                           <span className="fm-sb-hdr-rank">#</span>
                           <span>{win ? 'Zwycięstwo' : 'Porażka'} (Twój zespół)</span>
                           <div className="fm-sb-cols">
+                            <span>Score</span>
                             <span>KDA</span>
                             <span>DMG</span>
                             <span>CS</span>
@@ -1491,6 +1641,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                           const tpKdaVal = tp.deaths === 0 ? (tp.kills + tp.assists) : (tp.kills + tp.assists) / tp.deaths
                           const isMe = tp.puuid === account.puuid
                           const playerRank = rankings.get(tp.puuid)
+                          const bd = playerRank?.breakdown
                           return (
                             <div key={ti} className={`fm-sb-row ${isMe ? 'fm-sb-me' : ''}`}>
                               <div className="fm-sb-rank">
@@ -1504,6 +1655,14 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                                 </div>
                               </div>
                               <div className="fm-sb-cols">
+                                <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
+                                  <b>{playerRank?.score.toFixed(0) || '?'}</b>
+                                  {bd && <span className="fm-sb-score-bar">
+                                    <i className="bar-combat" style={{width: `${Math.min(bd.combat / 25 * 100, 100)}%`}}></i>
+                                    <i className="bar-obj" style={{width: `${Math.min(bd.objectives / 20 * 100, 100)}%`}}></i>
+                                    <i className="bar-utility" style={{width: `${Math.min(bd.utility / 12 * 100, 100)}%`}}></i>
+                                  </span>}
+                                </span>
                                 <span className="fm-sb-kda">{tp.kills}/{tp.deaths}/{tp.assists} <small>({tpKdaVal.toFixed(1)})</small></span>
                                 <span>{tp.totalDamageDealtToChampions?.toLocaleString()}</span>
                                 <span>{tpCs}</span>
@@ -1526,6 +1685,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                           <span className="fm-sb-hdr-rank">#</span>
                           <span>{!win ? 'Zwycięstwo' : 'Porażka'} (Przeciwnicy)</span>
                           <div className="fm-sb-cols">
+                            <span>Score</span>
                             <span>KDA</span>
                             <span>DMG</span>
                             <span>CS</span>
@@ -1537,6 +1697,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                           const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
                           const tpKdaVal = tp.deaths === 0 ? (tp.kills + tp.assists) : (tp.kills + tp.assists) / tp.deaths
                           const playerRank = rankings.get(tp.puuid)
+                          const bd = playerRank?.breakdown
                           return (
                             <div key={ti} className="fm-sb-row">
                               <div className="fm-sb-rank">
@@ -1550,6 +1711,14 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                                 </div>
                               </div>
                               <div className="fm-sb-cols">
+                                <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
+                                  <b>{playerRank?.score.toFixed(0) || '?'}</b>
+                                  {bd && <span className="fm-sb-score-bar">
+                                    <i className="bar-combat" style={{width: `${Math.min(bd.combat / 25 * 100, 100)}%`}}></i>
+                                    <i className="bar-obj" style={{width: `${Math.min(bd.objectives / 20 * 100, 100)}%`}}></i>
+                                    <i className="bar-utility" style={{width: `${Math.min(bd.utility / 12 * 100, 100)}%`}}></i>
+                                  </span>}
+                                </span>
                                 <span className="fm-sb-kda">{tp.kills}/{tp.deaths}/{tp.assists} <small>({tpKdaVal.toFixed(1)})</small></span>
                                 <span>{tp.totalDamageDealtToChampions?.toLocaleString()}</span>
                                 <span>{tpCs}</span>

@@ -1659,6 +1659,23 @@ html,body,#root{
   color:var(--gold-main);
   font-weight:700;
 }
+.fm-rank-inline{
+  font-size:11px;
+  font-weight:700;
+  padding:1px 6px;
+  border-radius:4px;
+  letter-spacing:0.02em;
+}
+.fm-rank-inline.rank-1{
+  color:#ffd700;
+  background:rgba(255,215,0,0.12);
+  text-shadow:0 0 6px rgba(255,215,0,0.3);
+}
+.fm-rank-inline.rank-2{ color:#c0c0c0; background:rgba(192,192,192,0.1); }
+.fm-rank-inline.rank-3{ color:#cd7f32; background:rgba(205,127,50,0.1); }
+.fm-rank-inline.rank-4, .fm-rank-inline.rank-5{ color:var(--accent-1); }
+.fm-rank-inline.rank-6, .fm-rank-inline.rank-7{ color:var(--text-secondary); }
+.fm-rank-inline.rank-8, .fm-rank-inline.rank-9, .fm-rank-inline.rank-10{ color:var(--text-muted); opacity:0.7; }
 .fm-time{ opacity:0.8; }
 .fm-ago{ opacity:0.6; font-size:9px; }
 
@@ -1757,7 +1774,7 @@ html,body,#root{
 /* Column labels in header */
 .fm-sb-team-header .fm-sb-cols{
   display:grid;
-  grid-template-columns:100px 80px 50px 60px 70px;
+  grid-template-columns:60px 100px 80px 50px 60px 70px;
   gap:4px;
   text-align:center;
   font-size:10px;
@@ -1883,7 +1900,7 @@ html,body,#root{
 /* Stat columns in player row */
 .fm-sb-row .fm-sb-cols{
   display:grid;
-  grid-template-columns:100px 80px 50px 60px 70px;
+  grid-template-columns:60px 100px 80px 50px 60px 70px;
   gap:4px;
   text-align:center;
   font-size:11px;
@@ -1898,6 +1915,37 @@ html,body,#root{
   opacity:0.6;
   font-size:10px;
 }
+
+/* EdgeScore in scoreboard */
+.fm-sb-score{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  cursor:help;
+}
+.fm-sb-score b{
+  font-size:12px;
+  color:var(--gold-main);
+  font-weight:800;
+}
+.fm-sb-score-bar{
+  display:flex;
+  width:42px;
+  height:4px;
+  border-radius:2px;
+  overflow:hidden;
+  background:rgba(255,255,255,0.06);
+  gap:1px;
+}
+.fm-sb-score-bar i{
+  display:block;
+  height:100%;
+  border-radius:1px;
+}
+.bar-combat{ background:#ff6b6b; }
+.bar-obj{ background:#ffd700; }
+.bar-utility{ background:#50c878; }
 
 /* Items in scoreboard row */
 .fm-sb-items{
