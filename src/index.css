@@ -1491,6 +1491,9 @@ html,body,#root{
   flex-direction:column;
   gap:6px;
 }
+.fp-matches-list.has-expanded{
+  flex:1;
+}
 
 /* ——— Single match card ——— */
 .fm-card{
@@ -1510,6 +1513,7 @@ html,body,#root{
 .fm-expanded{
   border-color:rgba(184,107,255,0.45) !important;
   box-shadow:0 4px 28px rgba(0,0,0,0.4), 0 0 20px rgba(184,107,255,0.08);
+  flex:1;
 }
 
 /* Hide other cards when one is expanded */
