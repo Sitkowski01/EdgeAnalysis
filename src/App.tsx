@@ -460,10 +460,10 @@ function rankPlayersInMatch(
   const roleWeights: Record<string, Record<string, number>> = {
     //            combat  dmg    obj    eco    vis    util   clutch impact win
     TOP:     { combat: 1.15, damage: 1.00, objectives: 1.10, economy: 1.00, vision: 0.85, utility: 1.15, clutch: 0.95, impact: 1.00, winContribution: 1.00 },
-    JUNGLE:  { combat: 0.95, damage: 0.85, objectives: 1.25, economy: 0.80, vision: 1.10, utility: 0.95, clutch: 1.20, impact: 1.00, winContribution: 1.00 },
+    JUNGLE:  { combat: 1.00, damage: 0.90, objectives: 1.20, economy: 0.85, vision: 1.10, utility: 0.95, clutch: 1.15, impact: 1.00, winContribution: 1.00 },
     MIDDLE:  { combat: 1.10, damage: 1.15, objectives: 0.95, economy: 1.00, vision: 0.85, utility: 0.85, clutch: 1.10, impact: 1.00, winContribution: 1.00 },
-    BOTTOM:  { combat: 1.00, damage: 1.20, objectives: 0.90, economy: 1.15, vision: 0.80, utility: 0.75, clutch: 0.90, impact: 1.00, winContribution: 1.05 },
-    UTILITY: { combat: 0.90, damage: 0.75, objectives: 0.85, economy: 0.75, vision: 1.25, utility: 1.25, clutch: 1.10, impact: 1.00, winContribution: 1.00 },
+    BOTTOM:  { combat: 1.00, damage: 1.10, objectives: 0.95, economy: 1.05, vision: 0.85, utility: 0.85, clutch: 0.95, impact: 1.00, winContribution: 1.00 },
+    UTILITY: { combat: 0.95, damage: 0.80, objectives: 0.90, economy: 0.85, vision: 1.15, utility: 1.15, clutch: 1.05, impact: 1.00, winContribution: 1.00 },
     DEFAULT: { combat: 1.00, damage: 1.00, objectives: 1.00, economy: 1.00, vision: 1.00, utility: 1.00, clutch: 1.00, impact: 1.00, winContribution: 1.00 },
   }
   const categoryMax: Record<string, number> = {
