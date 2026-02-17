@@ -275,6 +275,8 @@ function HomePage({ onProfileFound }: { onProfileFound: (data: SearchResult) => 
 type MatchParticipant = {
   puuid: string
   championName: string
+  championId: number
+  champLevel: number
   kills: number
   deaths: number
   assists: number
@@ -282,10 +284,31 @@ type MatchParticipant = {
   totalMinionsKilled: number
   neutralMinionsKilled: number
   visionScore: number
+  visionWardsBoughtInGame: number
+  wardsPlaced: number
+  wardsKilled: number
   goldEarned: number
   totalDamageDealtToChampions: number
+  totalDamageTaken: number
   teamPosition: string
   gameDuration: number
+  teamId: number
+  riotIdGameName?: string
+  riotIdTagline?: string
+  summonerName?: string
+  item0: number
+  item1: number
+  item2: number
+  item3: number
+  item4: number
+  item5: number
+  item6: number
+  summoner1Id: number
+  summoner2Id: number
+  doubleKills: number
+  tripleKills: number
+  quadraKills: number
+  pentaKills: number
 }
 
 type MatchData = {
@@ -293,6 +316,8 @@ type MatchData = {
     gameDuration: number
     participants: MatchParticipant[]
     queueId: number
+    gameCreation: number
+    teams: { teamId: number; win: boolean; objectives: { baron: { kills: number }; dragon: { kills: number }; tower: { kills: number } } }[]
   }
 }
 
@@ -375,6 +400,9 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
   const [matchesData, setMatchesData] = useState<MatchData[]>([])
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [championIdMap, setChampionIdMap] = useState<Record<number, string>>({})
+  const [subPage, setSubPage] = useState<'overview' | 'matches'>('overview')
+  const [matchFilter, setMatchFilter] = useState<'all' | 'wins' | 'losses'>('all')
+  const [expandedMatch, setExpandedMatch] = useState<number | null>(null)
 
   // Pobierz mapowanie championId -> nazwa z Data Dragon
   useEffect(() => {
@@ -1036,8 +1064,8 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             <span className="fp-bw-sl-line"></span>
           </div>
           <div className="fp-seg-btns">
-            <button className="fp-seg-btn">Twoje gry</button>
-            <button className="fp-seg-btn">Znajomi</button>
+            <button className={`fp-seg-btn ${subPage === 'matches' ? 'active' : ''}`} onClick={() => setSubPage('matches')}>Twoje gry</button>
+            <button className={`fp-seg-btn ${subPage === 'overview' ? 'active' : ''}`} onClick={() => setSubPage('overview')}>Profil</button>
           </div>
           <div className="fp-bw-line"></div>
         </div>
@@ -1047,6 +1075,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
         </div>
       </div>
 
+      {subPage === 'overview' ? (
       <div className="fp-content">
         <div className="fp-content-row">
           {/* ——— MOST PLAYED — classic card ——— */}
@@ -1266,6 +1295,213 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
           </div>
         </div>
       </div>
+      ) : (
+      <div className="fp-matches">
+        <div className="fp-matches-header">
+          <h2 className="fp-matches-title">Twoje mecze</h2>
+          <div className="fm-filters">
+            <button className={`fm-filter ${matchFilter === 'all' ? 'active' : ''}`} onClick={() => setMatchFilter('all')}>Wszystko</button>
+            <button className={`fm-filter ${matchFilter === 'wins' ? 'active' : ''}`} onClick={() => setMatchFilter('wins')}>Wygrane</button>
+            <button className={`fm-filter ${matchFilter === 'losses' ? 'active' : ''}`} onClick={() => setMatchFilter('losses')}>Przegrane</button>
+          </div>
+        </div>
+        <div className="fp-matches-list">
+          {recentMatches
+            .filter(match => {
+              if (matchFilter === 'all') return true
+              const p = match.info.participants.find(pp => pp.puuid === account.puuid)
+              if (!p) return false
+              return matchFilter === 'wins' ? p.win : !p.win
+            })
+            .map((match, idx) => {
+            const p = match.info.participants.find(pp => pp.puuid === account.puuid)
+            if (!p) return null
+            const win = p.win
+            const kda = `${p.kills}/${p.deaths}/${p.assists}`
+            const kdaVal = p.deaths === 0 ? (p.kills + p.assists) : (p.kills + p.assists) / p.deaths
+            const cs = p.totalMinionsKilled + (p.neutralMinionsKilled || 0)
+            const duration = Math.floor(match.info.gameDuration / 60)
+            const champImg = `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${p.championName}.png`
+            const lane = normalizePosition(p.teamPosition)
+            const laneIcon = laneIconUrls[lane] || ''
+            const csPerMin = duration > 0 ? (cs / duration).toFixed(1) : '0.0'
+            const kdaClass = kdaVal >= 5 ? 'kda-legendary' : kdaVal >= 3 ? 'kda-excellent' : kdaVal >= 2 ? 'kda-good' : 'kda-poor'
+            const isExpanded = expandedMatch === idx
+            
+            // teams
+            const myTeam = match.info.participants.filter(pp => pp.teamId === p.teamId)
+            const enemyTeam = match.info.participants.filter(pp => pp.teamId !== p.teamId)
+            const myTeamData = match.info.teams?.find(t => t.teamId === p.teamId)
+            const enemyTeamData = match.info.teams?.find(t => t.teamId !== p.teamId)
+            
+            // Time ago
+            const timeAgo = match.info.gameCreation ? (() => {
+              const diff = Date.now() - match.info.gameCreation
+              const mins = Math.floor(diff / 60000)
+              if (mins < 60) return `${mins} min temu`
+              const hrs = Math.floor(mins / 60)
+              if (hrs < 24) return `${hrs}h temu`
+              const days = Math.floor(hrs / 24)
+              return `${days}d temu`
+            })() : ''
+            
+            // Impact score for this match
+            const impact = calculateMatchImpact(p, match.info.gameDuration)
+            
+            // Item images helper
+            const itemImg = (itemId: number) => itemId > 0 ? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${itemId}.png` : null
+            
+            return (
+              <div key={idx} className={`fm-card ${win ? 'fm-win' : 'fm-loss'} ${isExpanded ? 'fm-expanded' : ''}`}>
+                <div className="fm-row" onClick={() => setExpandedMatch(isExpanded ? null : idx)}>
+                  <div className="fm-result-bar"></div>
+                  <div className="fm-champ">
+                    <img src={champImg} alt={p.championName} />
+                    <span className="fm-level">{p.champLevel}</span>
+                    {laneIcon && <img src={laneIcon} alt={lane} className="fm-lane-icon" />}
+                  </div>
+                  <div className="fm-main">
+                    <div className="fm-champ-name">{p.championName}</div>
+                    <div className={`fm-kda ${kdaClass}`}>{kda} <span className="fm-kda-val">{kdaVal.toFixed(2)}:1</span></div>
+                  </div>
+                  <div className="fm-items">
+                    {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map((item, i) => {
+                      const src = itemImg(item)
+                      return <div key={i} className="fm-item">{src ? <img src={src} alt="" /> : null}</div>
+                    })}
+                    <div className="fm-item fm-trinket">{itemImg(p.item6) ? <img src={itemImg(p.item6)!} alt="" /> : null}</div>
+                  </div>
+                  <div className="fm-stats">
+                    <span>{cs} CS ({csPerMin}/min)</span>
+                    <span>{p.totalDamageDealtToChampions?.toLocaleString() || 0} DMG</span>
+                  </div>
+                  <div className="fm-meta">
+                    <span className="fm-impact">Impact <b>{impact.toFixed(1)}</b></span>
+                    <span className="fm-time">{duration} min</span>
+                    {timeAgo && <span className="fm-ago">{timeAgo}</span>}
+                  </div>
+                  <div className="fm-teams-mini">
+                    <div className="fm-team-mini">
+                      {myTeam.map((tp, ti) => (
+                        <img key={ti} src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.riotIdGameName || tp.championName} />
+                      ))}
+                    </div>
+                    <div className="fm-team-mini">
+                      {enemyTeam.map((tp, ti) => (
+                        <img key={ti} src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.riotIdGameName || tp.championName} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="fm-expand-btn">{isExpanded ? '▲' : '▼'}</div>
+                </div>
+                
+                {isExpanded && (
+                  <div className="fm-details">
+                    <div className="fm-scoreboard">
+                      {/* My team */}
+                      <div className="fm-sb-team">
+                        <div className="fm-sb-team-header fm-sb-ally">
+                          <span>{win ? 'Zwycięstwo' : 'Porażka'} (Twój zespół)</span>
+                          <div className="fm-sb-cols">
+                            <span>KDA</span>
+                            <span>DMG</span>
+                            <span>CS</span>
+                            <span>Wardy</span>
+                            <span>Złoto</span>
+                          </div>
+                        </div>
+                        {myTeam.map((tp, ti) => {
+                          const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
+                          const tpKdaVal = tp.deaths === 0 ? (tp.kills + tp.assists) : (tp.kills + tp.assists) / tp.deaths
+                          const isMe = tp.puuid === account.puuid
+                          return (
+                            <div key={ti} className={`fm-sb-row ${isMe ? 'fm-sb-me' : ''}`}>
+                              <div className="fm-sb-player">
+                                <img src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} className="fm-sb-champ" />
+                                <div className="fm-sb-name">
+                                  <span>{tp.riotIdGameName || tp.summonerName || tp.championName}</span>
+                                  <small>{tp.championName}</small>
+                                </div>
+                              </div>
+                              <div className="fm-sb-cols">
+                                <span className="fm-sb-kda">{tp.kills}/{tp.deaths}/{tp.assists} <small>({tpKdaVal.toFixed(1)})</small></span>
+                                <span>{tp.totalDamageDealtToChampions?.toLocaleString()}</span>
+                                <span>{tpCs}</span>
+                                <span>{tp.wardsPlaced || 0}/{tp.wardsKilled || 0}</span>
+                                <span>{tp.goldEarned?.toLocaleString()}</span>
+                              </div>
+                              <div className="fm-sb-items">
+                                {[tp.item0, tp.item1, tp.item2, tp.item3, tp.item4, tp.item5, tp.item6].map((item, ii) => {
+                                  const src = itemImg(item)
+                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" /> : null}</div>
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {/* Enemy team */}
+                      <div className="fm-sb-team">
+                        <div className="fm-sb-team-header fm-sb-enemy">
+                          <span>{!win ? 'Zwycięstwo' : 'Porażka'} (Przeciwnicy)</span>
+                          <div className="fm-sb-cols">
+                            <span>KDA</span>
+                            <span>DMG</span>
+                            <span>CS</span>
+                            <span>Wardy</span>
+                            <span>Złoto</span>
+                          </div>
+                        </div>
+                        {enemyTeam.map((tp, ti) => {
+                          const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
+                          const tpKdaVal = tp.deaths === 0 ? (tp.kills + tp.assists) : (tp.kills + tp.assists) / tp.deaths
+                          return (
+                            <div key={ti} className="fm-sb-row">
+                              <div className="fm-sb-player">
+                                <img src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} className="fm-sb-champ" />
+                                <div className="fm-sb-name">
+                                  <span>{tp.riotIdGameName || tp.summonerName || tp.championName}</span>
+                                  <small>{tp.championName}</small>
+                                </div>
+                              </div>
+                              <div className="fm-sb-cols">
+                                <span className="fm-sb-kda">{tp.kills}/{tp.deaths}/{tp.assists} <small>({tpKdaVal.toFixed(1)})</small></span>
+                                <span>{tp.totalDamageDealtToChampions?.toLocaleString()}</span>
+                                <span>{tpCs}</span>
+                                <span>{tp.wardsPlaced || 0}/{tp.wardsKilled || 0}</span>
+                                <span>{tp.goldEarned?.toLocaleString()}</span>
+                              </div>
+                              <div className="fm-sb-items">
+                                {[tp.item0, tp.item1, tp.item2, tp.item3, tp.item4, tp.item5, tp.item6].map((item, ii) => {
+                                  const src = itemImg(item)
+                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" /> : null}</div>
+                                })}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                    {/* Team totals bar */}
+                    <div className="fm-totals">
+                      <div className="fm-total-side fm-total-ally">
+                        <span>{myTeam.reduce((s, tp) => s + tp.kills, 0)}/{myTeam.reduce((s, tp) => s + tp.deaths, 0)}/{myTeam.reduce((s, tp) => s + tp.assists, 0)}</span>
+                        <span>{myTeam.reduce((s, tp) => s + tp.goldEarned, 0).toLocaleString()} złota</span>
+                      </div>
+                      <div className="fm-total-vs">VS</div>
+                      <div className="fm-total-side fm-total-enemy">
+                        <span>{enemyTeam.reduce((s, tp) => s + tp.kills, 0)}/{enemyTeam.reduce((s, tp) => s + tp.deaths, 0)}/{enemyTeam.reduce((s, tp) => s + tp.assists, 0)}</span>
+                        <span>{enemyTeam.reduce((s, tp) => s + tp.goldEarned, 0).toLocaleString()} złota</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+      )}
     </main>
   )
 }
