@@ -377,6 +377,78 @@ function calculateMatchImpact(p: MatchParticipant, gameDuration: number): number
   return Math.min(Math.max(total, 0), 10)
 }
 
+// ============================================================
+// RANKING SYSTEM — ocena wszystkich 10 graczy w meczu (1 = MVP)
+// ============================================================
+function rankPlayersInMatch(participants: MatchParticipant[], gameDuration: number): Map<string, { rank: number; score: number }> {
+  const minutes = gameDuration / 60
+  if (minutes <= 0) return new Map()
+
+  // Aggregate totals for relative scoring
+  const totalKills = Math.max(participants.reduce((s, p) => s + p.kills, 0), 1)
+  const totalDmg = Math.max(participants.reduce((s, p) => s + (p.totalDamageDealtToChampions || 0), 0), 1)
+  const totalGold = Math.max(participants.reduce((s, p) => s + (p.goldEarned || 0), 0), 1)
+  const totalCS = Math.max(participants.reduce((s, p) => s + p.totalMinionsKilled + (p.neutralMinionsKilled || 0), 0), 1)
+  const totalVision = Math.max(participants.reduce((s, p) => s + (p.visionScore || 0), 0), 1)
+  const totalDmgTaken = Math.max(participants.reduce((s, p) => s + (p.totalDamageTaken || 0), 0), 1)
+
+  // Per-team kill participation
+  const teamKills: Record<number, number> = {}
+  participants.forEach(p => { teamKills[p.teamId] = (teamKills[p.teamId] || 0) + p.kills })
+
+  const scored = participants.map(p => {
+    const kda = p.deaths === 0 ? (p.kills + p.assists) * 1.5 : (p.kills + p.assists) / p.deaths
+    const cs = p.totalMinionsKilled + (p.neutralMinionsKilled || 0)
+    const myTeamKills = Math.max(teamKills[p.teamId] || 1, 1)
+    const killParticipation = (p.kills + p.assists) / myTeamKills
+
+    // 1) KDA rating (0–20 pts) — most important
+    const kdaScore = Math.min(kda / 6, 1) * 20
+
+    // 2) Damage share (0–18 pts)
+    const dmgShare = (p.totalDamageDealtToChampions || 0) / totalDmg
+    const dmgScore = Math.min(dmgShare / 0.15, 1) * 18
+
+    // 3) Gold share (0–12 pts)
+    const goldShare = (p.goldEarned || 0) / totalGold
+    const goldScore = Math.min(goldShare / 0.14, 1) * 12
+
+    // 4) Kill participation (0–15 pts)
+    const kpScore = Math.min(killParticipation, 1) * 15
+
+    // 5) CS per minute (0–10 pts)
+    const csPerMin = cs / minutes
+    const csScore = Math.min(csPerMin / 9, 1) * 10
+
+    // 6) Vision contribution (0–8 pts)
+    const visionShare = (p.visionScore || 0) / totalVision
+    const visionScoreVal = Math.min(visionShare / 0.15, 1) * 8
+
+    // 7) Tanking share for frontliners (0–5 pts)
+    const tankShare = (p.totalDamageTaken || 0) / totalDmgTaken
+    const tankScore = Math.min(tankShare / 0.15, 1) * 5
+
+    // 8) Multi-kills bonus (0–7 pts)
+    const multiKills = (p.doubleKills || 0) * 0.5 + (p.tripleKills || 0) * 1.5 + (p.quadraKills || 0) * 3 + (p.pentaKills || 0) * 7
+    const multiScore = Math.min(multiKills, 7)
+
+    // 9) Death penalty — dying a lot hurts
+    const deathPenalty = Math.min((p.deaths / minutes) * 3, 8)
+
+    // 10) Win bonus
+    const winBonus = p.win ? 3 : 0
+
+    const raw = kdaScore + dmgScore + goldScore + kpScore + csScore + visionScoreVal + tankScore + multiScore + winBonus - deathPenalty
+    return { puuid: p.puuid, score: Math.max(raw, 0) }
+  })
+
+  // Sort descending by score → rank 1 = best
+  scored.sort((a, b) => b.score - a.score)
+  const result = new Map<string, { rank: number; score: number }>()
+  scored.forEach((s, i) => result.set(s.puuid, { rank: i + 1, score: s.score }))
+  return result
+}
+
 // Mapowanie pozycji na nazwy linii
 function normalizePosition(pos: string): string {
   const map: Record<string, string> = {
@@ -1348,8 +1420,11 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             // Impact score for this match
             const impact = calculateMatchImpact(p, match.info.gameDuration)
             
-            // Item images helper
-            const itemImg = (itemId: number) => itemId > 0 ? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${itemId}.png` : null
+            // Ranking all 10 players
+            const rankings = rankPlayersInMatch(match.info.participants, match.info.gameDuration)
+            
+            // Item images helper — guard against undefined/NaN/0
+            const itemImg = (itemId: number | undefined) => (itemId && itemId > 0) ? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${itemId}.png` : null
             
             return (
               <div key={idx} className={`fm-card ${win ? 'fm-win' : 'fm-loss'} ${isExpanded ? 'fm-expanded' : ''}`}>
@@ -1367,9 +1442,9 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                   <div className="fm-items">
                     {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map((item, i) => {
                       const src = itemImg(item)
-                      return <div key={i} className="fm-item">{src ? <img src={src} alt="" /> : null}</div>
+                      return <div key={i} className="fm-item">{src ? <img src={src} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                     })}
-                    <div className="fm-item fm-trinket">{itemImg(p.item6) ? <img src={itemImg(p.item6)!} alt="" /> : null}</div>
+                    <div className="fm-item fm-trinket">{itemImg(p.item6) ? <img src={itemImg(p.item6)!} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                   </div>
                   <div className="fm-stats">
                     <span>{cs} CS ({csPerMin}/min)</span>
@@ -1401,6 +1476,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                       {/* My team */}
                       <div className="fm-sb-team">
                         <div className="fm-sb-team-header fm-sb-ally">
+                          <span className="fm-sb-hdr-rank">#</span>
                           <span>{win ? 'Zwycięstwo' : 'Porażka'} (Twój zespół)</span>
                           <div className="fm-sb-cols">
                             <span>KDA</span>
@@ -1414,8 +1490,12 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                           const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
                           const tpKdaVal = tp.deaths === 0 ? (tp.kills + tp.assists) : (tp.kills + tp.assists) / tp.deaths
                           const isMe = tp.puuid === account.puuid
+                          const playerRank = rankings.get(tp.puuid)
                           return (
                             <div key={ti} className={`fm-sb-row ${isMe ? 'fm-sb-me' : ''}`}>
+                              <div className="fm-sb-rank">
+                                <span className={`fm-rank-badge rank-${playerRank?.rank || 10}`}>#{playerRank?.rank || '?'}</span>
+                              </div>
                               <div className="fm-sb-player">
                                 <img src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} className="fm-sb-champ" />
                                 <div className="fm-sb-name">
@@ -1433,7 +1513,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                               <div className="fm-sb-items">
                                 {[tp.item0, tp.item1, tp.item2, tp.item3, tp.item4, tp.item5, tp.item6].map((item, ii) => {
                                   const src = itemImg(item)
-                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" /> : null}</div>
+                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                                 })}
                               </div>
                             </div>
@@ -1443,6 +1523,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                       {/* Enemy team */}
                       <div className="fm-sb-team">
                         <div className="fm-sb-team-header fm-sb-enemy">
+                          <span className="fm-sb-hdr-rank">#</span>
                           <span>{!win ? 'Zwycięstwo' : 'Porażka'} (Przeciwnicy)</span>
                           <div className="fm-sb-cols">
                             <span>KDA</span>
@@ -1455,8 +1536,12 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                         {enemyTeam.map((tp, ti) => {
                           const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
                           const tpKdaVal = tp.deaths === 0 ? (tp.kills + tp.assists) : (tp.kills + tp.assists) / tp.deaths
+                          const playerRank = rankings.get(tp.puuid)
                           return (
                             <div key={ti} className="fm-sb-row">
+                              <div className="fm-sb-rank">
+                                <span className={`fm-rank-badge rank-${playerRank?.rank || 10}`}>#{playerRank?.rank || '?'}</span>
+                              </div>
                               <div className="fm-sb-player">
                                 <img src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} className="fm-sb-champ" />
                                 <div className="fm-sb-name">
@@ -1474,7 +1559,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                               <div className="fm-sb-items">
                                 {[tp.item0, tp.item1, tp.item2, tp.item3, tp.item4, tp.item5, tp.item6].map((item, ii) => {
                                   const src = itemImg(item)
-                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" /> : null}</div>
+                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                                 })}
                               </div>
                             </div>

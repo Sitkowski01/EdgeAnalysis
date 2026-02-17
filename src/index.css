@@ -1431,6 +1431,8 @@ html,body,#root{
   padding:8px 0 16px;
   scrollbar-width:thin;
   scrollbar-color:rgba(184,107,255,0.3) transparent;
+  position:relative;
+  z-index:20;
 }
 .fp-matches::-webkit-scrollbar{ width:6px; }
 .fp-matches::-webkit-scrollbar-track{ background:transparent; }
@@ -1728,13 +1730,18 @@ html,body,#root{
 /* Team header row */
 .fm-sb-team-header{
   display:grid;
-  grid-template-columns:200px 1fr auto;
+  grid-template-columns:32px 1fr auto auto;
   align-items:center;
   padding:6px 10px;
   font-size:11px;
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:0.04em;
+}
+.fm-sb-hdr-rank{
+  font-size:10px;
+  opacity:0.7;
+  text-align:center;
 }
 .fm-sb-ally{
   background:rgba(80,200,120,0.1);
@@ -1763,7 +1770,7 @@ html,body,#root{
 /* Player row */
 .fm-sb-row{
   display:grid;
-  grid-template-columns:200px 1fr auto;
+  grid-template-columns:32px 180px 1fr auto;
   align-items:center;
   padding:5px 10px;
   background:rgba(8,4,18,0.35);
@@ -1810,6 +1817,67 @@ html,body,#root{
   font-size:10px;
   color:var(--text-muted);
   opacity:0.7;
+}
+
+/* ——— RANK BADGES ——— */
+.fm-sb-rank{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.fm-rank-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  font-size:10px;
+  font-weight:800;
+  font-family:'Montserrat',sans-serif;
+  line-height:1;
+  border:2px solid;
+}
+/* MVP — gold / legendary */
+.rank-1{
+  color:#1a1000;
+  background:linear-gradient(135deg,#ffd700,#ffaa00);
+  border-color:#ffd700;
+  box-shadow:0 0 10px rgba(255,215,0,0.5), 0 0 4px rgba(255,170,0,0.4);
+  text-shadow:0 1px 2px rgba(0,0,0,0.3);
+}
+/* 2nd — silver */
+.rank-2{
+  color:#1a1a2e;
+  background:linear-gradient(135deg,#c0c0c0,#e8e8e8);
+  border-color:#c0c0c0;
+  box-shadow:0 0 8px rgba(192,192,192,0.4);
+}
+/* 3rd — bronze */
+.rank-3{
+  color:#1a1000;
+  background:linear-gradient(135deg,#cd7f32,#e8a84c);
+  border-color:#cd7f32;
+  box-shadow:0 0 6px rgba(205,127,50,0.4);
+}
+/* 4-5 — purple accent */
+.rank-4, .rank-5{
+  color:#fff;
+  background:rgba(184,107,255,0.2);
+  border-color:rgba(184,107,255,0.4);
+}
+/* 6-7 — muted */
+.rank-6, .rank-7{
+  color:var(--text-secondary);
+  background:rgba(255,255,255,0.05);
+  border-color:rgba(255,255,255,0.1);
+}
+/* 8-10 — dim/red tint */
+.rank-8, .rank-9, .rank-10{
+  color:var(--text-muted);
+  background:rgba(255,80,80,0.08);
+  border-color:rgba(255,80,80,0.15);
+  opacity:0.8;
 }
 
 /* Stat columns in player row */
