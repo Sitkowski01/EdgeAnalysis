@@ -1747,7 +1747,7 @@ html,body,#root{
 /* Team header row */
 .fm-sb-team-header{
   display:grid;
-  grid-template-columns:32px 1fr auto auto;
+  grid-template-columns:32px 180px 1fr auto;
   align-items:center;
   padding:6px 10px;
   font-size:11px;
@@ -1759,6 +1759,13 @@ html,body,#root{
   font-size:10px;
   opacity:0.7;
   text-align:center;
+}
+.fm-sb-hdr-items{
+  font-size:9px;
+  color:var(--text-muted);
+  opacity:0.5;
+  text-align:center;
+  min-width:162px;
 }
 .fm-sb-ally{
   background:rgba(80,200,120,0.1);

@@ -678,12 +678,13 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
   const [subPage, setSubPage] = useState<'overview' | 'matches'>('overview')
   const [matchFilter, setMatchFilter] = useState<'all' | 'wins' | 'losses'>('all')
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null)
+  const [itemNames, setItemNames] = useState<Record<number, string>>({})
 
-  // Pobierz mapowanie championId -> nazwa z Data Dragon
+  // Pobierz mapowanie championId -> nazwa z Data Dragon + item names
   useEffect(() => {
     const fetchChampions = async () => {
       try {
-        const res = await fetch('https://ddragon.leagueoflegends.com/cdn/14.24.1/data/en_US/champion.json')
+        const res = await fetch('https://ddragon.leagueoflegends.com/cdn/16.3.1/data/en_US/champion.json')
         const data = await res.json()
         const idMap: Record<number, string> = {}
         for (const champ of Object.values(data.data) as any[]) {
@@ -694,7 +695,21 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
         console.error('Error fetching champion data:', err)
       }
     }
+    const fetchItems = async () => {
+      try {
+        const res = await fetch('https://ddragon.leagueoflegends.com/cdn/16.3.1/data/en_US/item.json')
+        const data = await res.json()
+        const names: Record<number, string> = {}
+        for (const [id, item] of Object.entries(data.data) as any[]) {
+          names[parseInt(id)] = item.name
+        }
+        setItemNames(names)
+      } catch (err) {
+        console.error('Error fetching item data:', err)
+      }
+    }
     fetchChampions()
+    fetchItems()
   }, [])
 
   // Pobierz dane meczów
@@ -911,7 +926,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
   const solo = getRankDisplay(soloRank)
 
   // Ikona profilu z Data Dragon
-  const profileIconUrl = `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/profileicon/${summoner.profileIconId}.png`
+  const profileIconUrl = `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/profileicon/${summoner.profileIconId}.png`
 
   // Funkcja do pobierania ikony rangi - używamy Community Dragon
   const getRankIcon = (tier: string) => {
@@ -1596,7 +1611,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             const kdaVal = p.deaths === 0 ? (p.kills + p.assists) : (p.kills + p.assists) / p.deaths
             const cs = p.totalMinionsKilled + (p.neutralMinionsKilled || 0)
             const duration = Math.floor(match.info.gameDuration / 60)
-            const champImg = `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${p.championName}.png`
+            const champImg = `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${p.championName}.png`
             const lane = normalizePosition(p.teamPosition)
             const laneIcon = laneIconUrls[lane] || ''
             const csPerMin = duration > 0 ? (cs / duration).toFixed(1) : '0.0'
@@ -1625,7 +1640,8 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             const myRank = rankings.get(p.puuid)
             
             // Item images helper — guard against undefined/NaN/0
-            const itemImg = (itemId: number | undefined) => (itemId && itemId > 0) ? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/item/${itemId}.png` : null
+            const itemImg = (itemId: number | undefined) => (itemId && itemId > 0) ? `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/item/${itemId}.png` : null
+            const itemName = (itemId: number | undefined) => (itemId && itemId > 0 && itemNames[itemId]) ? itemNames[itemId] : ''
             
             return (
               <div key={idx} className={`fm-card ${win ? 'fm-win' : 'fm-loss'} ${isExpanded ? 'fm-expanded' : ''}`}>
@@ -1643,9 +1659,9 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                   <div className="fm-items">
                     {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map((item, i) => {
                       const src = itemImg(item)
-                      return <div key={i} className="fm-item">{src ? <img src={src} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
+                      return <div key={i} className="fm-item">{src ? <img src={src} alt="" title={itemName(item)} onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                     })}
-                    <div className="fm-item fm-trinket">{itemImg(p.item6) ? <img src={itemImg(p.item6)!} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
+                    <div className="fm-item fm-trinket">{itemImg(p.item6) ? <img src={itemImg(p.item6)!} alt="" title={itemName(p.item6)} onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                   </div>
                   <div className="fm-stats">
                     <span>{cs} CS ({csPerMin}/min)</span>
@@ -1660,12 +1676,12 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                   <div className="fm-teams-mini">
                     <div className="fm-team-mini">
                       {myTeam.map((tp, ti) => (
-                        <img key={ti} src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.riotIdGameName || tp.championName} />
+                        <img key={ti} src={`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.riotIdGameName || tp.championName} />
                       ))}
                     </div>
                     <div className="fm-team-mini">
                       {enemyTeam.map((tp, ti) => (
-                        <img key={ti} src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.riotIdGameName || tp.championName} />
+                        <img key={ti} src={`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.riotIdGameName || tp.championName} />
                       ))}
                     </div>
                   </div>
@@ -1688,6 +1704,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                             <span>Wardy</span>
                             <span>Złoto</span>
                           </div>
+                          <span className="fm-sb-hdr-items">Itemy</span>
                         </div>
                         {myTeam.map((tp, ti) => {
                           const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
@@ -1701,7 +1718,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                                 <span className={`fm-rank-badge rank-${playerRank?.rank || 10}`}>#{playerRank?.rank || '?'}</span>
                               </div>
                               <div className="fm-sb-player">
-                                <img src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} className="fm-sb-champ" />
+                                <img src={`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.championName} className="fm-sb-champ" />
                                 <div className="fm-sb-name">
                                   <span>{tp.riotIdGameName || tp.summonerName || tp.championName}</span>
                                   <small>{tp.championName}</small>
@@ -1726,7 +1743,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                               <div className="fm-sb-items">
                                 {[tp.item0, tp.item1, tp.item2, tp.item3, tp.item4, tp.item5, tp.item6].map((item, ii) => {
                                   const src = itemImg(item)
-                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
+                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" title={itemName(item)} onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                                 })}
                               </div>
                             </div>
@@ -1746,6 +1763,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                             <span>Wardy</span>
                             <span>Złoto</span>
                           </div>
+                          <span className="fm-sb-hdr-items">Itemy</span>
                         </div>
                         {enemyTeam.map((tp, ti) => {
                           const tpCs = tp.totalMinionsKilled + (tp.neutralMinionsKilled || 0)
@@ -1758,7 +1776,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                                 <span className={`fm-rank-badge rank-${playerRank?.rank || 10}`}>#{playerRank?.rank || '?'}</span>
                               </div>
                               <div className="fm-sb-player">
-                                <img src={`https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${tp.championName}.png`} alt={tp.championName} className="fm-sb-champ" />
+                                <img src={`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${tp.championName}.png`} alt={tp.championName} title={tp.championName} className="fm-sb-champ" />
                                 <div className="fm-sb-name">
                                   <span>{tp.riotIdGameName || tp.summonerName || tp.championName}</span>
                                   <small>{tp.championName}</small>
@@ -1783,7 +1801,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                               <div className="fm-sb-items">
                                 {[tp.item0, tp.item1, tp.item2, tp.item3, tp.item4, tp.item5, tp.item6].map((item, ii) => {
                                   const src = itemImg(item)
-                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
+                                  return <div key={ii} className="fm-sb-item">{src ? <img src={src} alt="" title={itemName(item)} onError={e => { (e.target as HTMLImageElement).style.display='none' }} /> : null}</div>
                                 })}
                               </div>
                             </div>
@@ -1865,7 +1883,7 @@ function MatchCard({ matchId, puuid, routing }: { matchId: string, puuid: string
   }
 
   const win = participant.win
-  const champIcon = `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${participant.championName}.png`
+  const champIcon = `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${participant.championName}.png`
   const kda = `${participant.kills}/${participant.deaths}/${participant.assists}`
   const cs = participant.totalMinionsKilled + (participant.neutralMinionsKilled || 0)
   const gameDuration = Math.floor(matchData.info.gameDuration / 60)
