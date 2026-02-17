@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 
 const ThemeContext = React.createContext({theme:'dark', toggle:()=>{}})
 
@@ -679,6 +679,8 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
   const [matchFilter, setMatchFilter] = useState<'all' | 'wins' | 'losses'>('all')
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null)
   const [itemNames, setItemNames] = useState<Record<number, string>>({})
+  const matchesScrollRef = useRef<HTMLDivElement>(null)
+  const savedScrollRef = useRef<number>(0)
 
   // Pobierz mapowanie championId -> nazwa z Data Dragon + item names
   useEffect(() => {
@@ -1586,7 +1588,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
         </div>
       </div>
       ) : (
-      <div className="fp-matches">
+      <div className="fp-matches" ref={matchesScrollRef}>
         <div className="fp-matches-header">
           <h2 className="fp-matches-title">Twoje mecze</h2>
           <div className="fm-filters">
@@ -1646,7 +1648,17 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             return (
               <div key={idx} className={`fm-card ${win ? 'fm-win' : 'fm-loss'} ${isExpanded ? 'fm-expanded' : ''}`}
                 ref={el => { if (isExpanded && el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}>
-                <div className="fm-row" onClick={() => setExpandedMatch(isExpanded ? null : idx)}>
+                <div className="fm-row" onClick={() => {
+                  if (isExpanded) {
+                    setExpandedMatch(null)
+                    requestAnimationFrame(() => {
+                      if (matchesScrollRef.current) matchesScrollRef.current.scrollTop = savedScrollRef.current
+                    })
+                  } else {
+                    if (matchesScrollRef.current) savedScrollRef.current = matchesScrollRef.current.scrollTop
+                    setExpandedMatch(idx)
+                  }
+                }}>
                   <div className="fm-result-bar"></div>
                   <div className="fm-champ">
                     <img src={champImg} alt={p.championName} />
