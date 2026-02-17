@@ -432,7 +432,8 @@ type PlayerScore = {
     economy: number     // Gold, CS
     vision: number      // Vision score, wards
     utility: number     // CC, heals, shields, tanking
-    clutch: number      // First blood, first tower, objective steals, survivability  
+    clutch: number      // First blood, first tower, objective steals, survivability
+    impact: number      // Nasz autorski Impact Score — ogólna ocena wydajności
     winContribution: number // How much you drove the win
   }
 }
@@ -576,15 +577,25 @@ function rankPlayersInMatch(
     const winContribution = Math.min(carryIndex * winMultiplier * 15, 10)
 
     // ═══════════════════════════════════════════════
-    // TOTAL — theoretical max ~115, normalize to 0-100
+    // 9) IMPACT — nasz autorski wskaźnik (max ~10 pts)
+    // Bierze pod uwagę ogólną wydajność gracza: KDA, CS/min,
+    // wizję, DMG/min, złoto, obiektywy mapowe — niezależnie
+    // od reszty kategorii. Działa jak "bonus za wszechstronność".
     // ═══════════════════════════════════════════════
-    const rawTotal = combat + damage + objectives + economy + vision + utility + clutch + winContribution
+    const impactRaw = calculateMatchImpact(p, gameDuration)
+    // Impact 0-10 → scale to 0-10 pts in EdgeScore
+    const impact = impactRaw
+
+    // ═══════════════════════════════════════════════
+    // TOTAL — theoretical max ~125, normalize to 0-100
+    // ═══════════════════════════════════════════════
+    const rawTotal = combat + damage + objectives + economy + vision + utility + clutch + winContribution + impact
     const normalized = Math.min(rawTotal, 100)
 
     return {
       puuid: p.puuid,
       score: normalized,
-      breakdown: { combat, damage, objectives, economy, vision, utility, clutch, winContribution }
+      breakdown: { combat, damage, objectives, economy, vision, utility, clutch, impact, winContribution }
     }
   })
 
@@ -1655,11 +1666,12 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                                 </div>
                               </div>
                               <div className="fm-sb-cols">
-                                <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
+                                <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Impact: ${bd.impact.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
                                   <b>{playerRank?.score.toFixed(0) || '?'}</b>
                                   {bd && <span className="fm-sb-score-bar">
                                     <i className="bar-combat" style={{width: `${Math.min(bd.combat / 25 * 100, 100)}%`}}></i>
                                     <i className="bar-obj" style={{width: `${Math.min(bd.objectives / 20 * 100, 100)}%`}}></i>
+                                    <i className="bar-impact" style={{width: `${Math.min(bd.impact / 10 * 100, 100)}%`}}></i>
                                     <i className="bar-utility" style={{width: `${Math.min(bd.utility / 12 * 100, 100)}%`}}></i>
                                   </span>}
                                 </span>
@@ -1711,11 +1723,12 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                                 </div>
                               </div>
                               <div className="fm-sb-cols">
-                                <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
+                                <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Impact: ${bd.impact.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
                                   <b>{playerRank?.score.toFixed(0) || '?'}</b>
                                   {bd && <span className="fm-sb-score-bar">
                                     <i className="bar-combat" style={{width: `${Math.min(bd.combat / 25 * 100, 100)}%`}}></i>
                                     <i className="bar-obj" style={{width: `${Math.min(bd.objectives / 20 * 100, 100)}%`}}></i>
+                                    <i className="bar-impact" style={{width: `${Math.min(bd.impact / 10 * 100, 100)}%`}}></i>
                                     <i className="bar-utility" style={{width: `${Math.min(bd.utility / 12 * 100, 100)}%`}}></i>
                                   </span>}
                                 </span>

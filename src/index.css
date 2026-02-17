@@ -1945,6 +1945,7 @@ html,body,#root{
 }
 .bar-combat{ background:#ff6b6b; }
 .bar-obj{ background:#ffd700; }
+.bar-impact{ background:#4fc3f7; }
 .bar-utility{ background:#50c878; }
 
 /* Items in scoreboard row */
