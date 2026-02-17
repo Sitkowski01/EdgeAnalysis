@@ -446,6 +446,27 @@ function rankPlayersInMatch(
   const minutes = gameDuration / 60
   if (minutes <= 0) return new Map()
 
+  // ═══════════════════════════════════════════════
+  // ROLE WEIGHTS — każda linia oceniana inaczej
+  // Top: walka 1v1, tanking, wieże, CS
+  // Jungle: obiektywy, wizja, early game, steale
+  // Mid: damage, solo kille, roaming
+  // ADC: damage, CS/gold, pozycjonowanie
+  // Support: wizja, CC, heale/shieldy, playmaking
+  // ═══════════════════════════════════════════════
+  const roleWeights: Record<string, Record<string, number>> = {
+    TOP:     { combat: 1.10, damage: 1.00, objectives: 1.15, economy: 1.10, vision: 0.75, utility: 1.05, clutch: 1.00, impact: 1.00, winContribution: 1.00 },
+    JUNGLE:  { combat: 1.00, damage: 0.75, objectives: 1.40, economy: 0.65, vision: 1.15, utility: 0.90, clutch: 1.30, impact: 1.00, winContribution: 1.00 },
+    MIDDLE:  { combat: 1.10, damage: 1.20, objectives: 0.90, economy: 1.05, vision: 0.80, utility: 0.80, clutch: 1.10, impact: 1.00, winContribution: 1.00 },
+    BOTTOM:  { combat: 1.00, damage: 1.30, objectives: 0.90, economy: 1.25, vision: 0.65, utility: 0.50, clutch: 0.85, impact: 1.00, winContribution: 1.05 },
+    UTILITY: { combat: 0.85, damage: 0.50, objectives: 0.80, economy: 0.45, vision: 1.50, utility: 1.50, clutch: 1.15, impact: 1.00, winContribution: 1.00 },
+    DEFAULT: { combat: 1.00, damage: 1.00, objectives: 1.00, economy: 1.00, vision: 1.00, utility: 1.00, clutch: 1.00, impact: 1.00, winContribution: 1.00 },
+  }
+  const categoryMax: Record<string, number> = {
+    combat: 25, damage: 18, objectives: 20, economy: 10,
+    vision: 8, utility: 12, clutch: 12, impact: 10, winContribution: 10
+  }
+
   // ——— Aggregate totals for relative scoring ———
   const totalKills = Math.max(participants.reduce((s, p) => s + p.kills, 0), 1)
   const totalDmg = Math.max(participants.reduce((s, p) => s + (p.totalDamageDealtToChampions || 0), 0), 1)
@@ -587,10 +608,27 @@ function rankPlayersInMatch(
     const impact = impactRaw
 
     // ═══════════════════════════════════════════════
-    // TOTAL — theoretical max ~125, normalize to 0-100
+    // TOTAL — apply ROLE WEIGHTS, normalize per-role
+    // Każda linia ma inne wagi, żeby support nie był
+    // karany za brak DMG, a jungler za niski CS.
     // ═══════════════════════════════════════════════
-    const rawTotal = combat + damage + objectives + economy + vision + utility + clutch + winContribution + impact
-    const normalized = Math.min(rawTotal, 100)
+    const w = roleWeights[p.teamPosition] || roleWeights.DEFAULT
+    const rawWeighted =
+      combat * w.combat +
+      damage * w.damage +
+      objectives * w.objectives +
+      economy * w.economy +
+      vision * w.vision +
+      utility * w.utility +
+      clutch * w.clutch +
+      impact * w.impact +
+      winContribution * w.winContribution
+
+    // Normalize: role-specific max so every role can reach 100
+    const roleMax = Object.keys(categoryMax).reduce(
+      (s, k) => s + categoryMax[k] * (w[k] ?? 1), 0
+    )
+    const normalized = Math.min(rawWeighted / roleMax * 100, 100)
 
     return {
       puuid: p.puuid,
