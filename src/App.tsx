@@ -1740,12 +1740,6 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                               <div className="fm-sb-cols">
                                 <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Impact: ${bd.impact.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
                                   <b>{playerRank?.score.toFixed(0) || '?'}</b>
-                                  {bd && <span className="fm-sb-score-bar">
-                                    <i className="bar-combat" style={{width: `${Math.min(bd.combat / 25 * 100, 100)}%`}}></i>
-                                    <i className="bar-obj" style={{width: `${Math.min(bd.objectives / 20 * 100, 100)}%`}}></i>
-                                    <i className="bar-impact" style={{width: `${Math.min(bd.impact / 10 * 100, 100)}%`}}></i>
-                                    <i className="bar-utility" style={{width: `${Math.min(bd.utility / 12 * 100, 100)}%`}}></i>
-                                  </span>}
                                 </span>
                                 <span className="fm-sb-kda">{tp.kills}/{tp.deaths}/{tp.assists} <small>({tpKdaVal.toFixed(1)})</small></span>
                                 <span>{tp.totalDamageDealtToChampions?.toLocaleString()}</span>
@@ -1798,12 +1792,6 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                               <div className="fm-sb-cols">
                                 <span className="fm-sb-score" title={bd ? `Walka: ${bd.combat.toFixed(1)} | DMG: ${bd.damage.toFixed(1)} | Cele: ${bd.objectives.toFixed(1)} | Ekonomia: ${bd.economy.toFixed(1)} | Wizja: ${bd.vision.toFixed(1)} | Użyteczność: ${bd.utility.toFixed(1)} | Clutch: ${bd.clutch.toFixed(1)} | Impact: ${bd.impact.toFixed(1)} | Wkład w wygraną: ${bd.winContribution.toFixed(1)}` : ''}>
                                   <b>{playerRank?.score.toFixed(0) || '?'}</b>
-                                  {bd && <span className="fm-sb-score-bar">
-                                    <i className="bar-combat" style={{width: `${Math.min(bd.combat / 25 * 100, 100)}%`}}></i>
-                                    <i className="bar-obj" style={{width: `${Math.min(bd.objectives / 20 * 100, 100)}%`}}></i>
-                                    <i className="bar-impact" style={{width: `${Math.min(bd.impact / 10 * 100, 100)}%`}}></i>
-                                    <i className="bar-utility" style={{width: `${Math.min(bd.utility / 12 * 100, 100)}%`}}></i>
-                                  </span>}
                                 </span>
                                 <span className="fm-sb-kda">{tp.kills}/{tp.deaths}/{tp.assists} <small>({tpKdaVal.toFixed(1)})</small></span>
                                 <span>{tp.totalDamageDealtToChampions?.toLocaleString()}</span>

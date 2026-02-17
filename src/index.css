@@ -1970,25 +1970,6 @@ html,body,#root{
   color:var(--gold-main);
   font-weight:800;
 }
-.fm-sb-score-bar{
-  display:flex;
-  width:42px;
-  height:4px;
-  border-radius:2px;
-  overflow:hidden;
-  background:rgba(255,255,255,0.06);
-  gap:1px;
-}
-.fm-sb-score-bar i{
-  display:block;
-  height:100%;
-  border-radius:1px;
-}
-.bar-combat{ background:#ff6b6b; }
-.bar-obj{ background:#ffd700; }
-.bar-impact{ background:#4fc3f7; }
-.bar-utility{ background:#50c878; }
-
 /* Items in scoreboard row */
 .fm-sb-items{
   display:flex;
