@@ -1,0 +1,30 @@
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#352e2a;--panel:#2f2620;--accent:#c9a066;--muted:#bfb1a6}
+body{font-family:Roboto,Helvetica,Arial,sans-serif;color:var(--muted);background:#1e1b1a url('') center/cover fixed}
+.container{max-width:1000px;margin:0 auto;padding:20px}
+.site-header{background:linear-gradient(180deg,rgba(0,0,0,.25),rgba(0,0,0,.5));border-bottom:1px solid rgba(255,255,255,.03)}
+.header-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:'Playfair Display',serif;color:#cfc1b5;font-size:24px}
+.main-nav a{color:var(--muted);margin:0 12px;text-decoration:none}
+.btn{background:rgba(255,255,255,.06);border:1px solid rgba(0,0,0,.2);color:var(--muted);padding:10px 14px;border-radius:6px;cursor:pointer}
+.btn.small{padding:6px 10px}
+.btn.primary{background:#2b7fbf;color:#fff;border:none}
+.btn.gold{background:linear-gradient(180deg,#aa7a4f,#7e5632);color:#fff;border:none;padding:12px 18px}
+.hero{min-height:820px;padding:80px 0;background-image:linear-gradient(180deg, rgba(0,0,0,0.4), rgba(0,0,0,0.6)), url('c:/Users/trist/Downloads/Strona główna 5.png');background-size:cover;background-position:center}
+.hero-inner{background:rgba(0,0,0,0.25);padding:40px;border-radius:10px}
+.hero h1{font-family:'Playfair Display',serif;font-size:48px;color:#f3ece7;margin-bottom:12px}
+.lead{color:#d7cfc9;margin-bottom:24px}
+.search-form{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.search-form select{padding:10px;border-radius:6px;border:1px solid rgba(0,0,0,.3)}
+.search-form input{flex:1;padding:10px;border-radius:6px;border:1px solid rgba(0,0,0,.3)}
+.quick-check{margin:8px 0}
+.features{display:flex;gap:16px;margin-top:18px}
+.feature{background:rgba(255,255,255,.03);padding:18px;border-radius:8px;flex:1;text-align:center}
+.feature .icon{font-size:22px;background:rgba(255,255,255,.04);display:inline-block;padding:10px 12px;border-radius:8px;margin-bottom:8px}
+.how{margin-top:28px;color:#e6ddd6;font-size:20px}
+.how-panel{display:flex;gap:20px;margin-top:12px}
+.how-left{flex:1;background:rgba(0,0,0,0.25);padding:16px;border-radius:8px}
+.how-right{flex:1;background:rgba(255,255,255,0.03);padding:16px;border-radius:8px;color:var(--muted)}
+.site-footer{padding:20px;text-align:center;color:#9b8f86}
+
+@media(max-width:800px){.hero h1{font-size:34px}.how-panel{flex-direction:column}.features{flex-direction:column}}
