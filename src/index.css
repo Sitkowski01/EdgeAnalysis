@@ -1512,6 +1512,9 @@ html,body,#root{
   box-shadow:0 4px 28px rgba(0,0,0,0.4), 0 0 20px rgba(184,107,255,0.08);
 }
 
+/* Hide other cards when one is expanded */
+.has-expanded .fm-card:not(.fm-expanded){ display:none; }
+
 /* Win/Loss left accent */
 .fm-win .fm-result-bar{ background:#50c878; }
 .fm-loss .fm-result-bar{ background:#ff5050; }

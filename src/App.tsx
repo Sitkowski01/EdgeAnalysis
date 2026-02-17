@@ -1595,7 +1595,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             <button className={`fm-filter ${matchFilter === 'losses' ? 'active' : ''}`} onClick={() => setMatchFilter('losses')}>Przegrane</button>
           </div>
         </div>
-        <div className="fp-matches-list">
+        <div className={`fp-matches-list ${expandedMatch !== null ? 'has-expanded' : ''}`}>
           {recentMatches
             .filter(match => {
               if (matchFilter === 'all') return true
@@ -1644,7 +1644,8 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             const itemName = (itemId: number | undefined) => (itemId && itemId > 0 && itemNames[itemId]) ? itemNames[itemId] : ''
             
             return (
-              <div key={idx} className={`fm-card ${win ? 'fm-win' : 'fm-loss'} ${isExpanded ? 'fm-expanded' : ''}`}>
+              <div key={idx} className={`fm-card ${win ? 'fm-win' : 'fm-loss'} ${isExpanded ? 'fm-expanded' : ''}`}
+                ref={el => { if (isExpanded && el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}>
                 <div className="fm-row" onClick={() => setExpandedMatch(isExpanded ? null : idx)}>
                   <div className="fm-result-bar"></div>
                   <div className="fm-champ">
