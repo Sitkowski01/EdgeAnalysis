@@ -448,18 +448,22 @@ function rankPlayersInMatch(
 
   // ═══════════════════════════════════════════════
   // ROLE WEIGHTS — każda linia oceniana inaczej
-  // Top: walka 1v1, tanking, wieże, CS
-  // Jungle: obiektywy, wizja, early game, steale
-  // Mid: damage, solo kille, roaming
-  // ADC: damage, CS/gold, pozycjonowanie
-  // Support: wizja, CC, heale/shieldy, playmaking
+  // Wagi 0.75–1.25: wyraźne różnice, ale bez
+  // ekstremalnych kar. Każda rola może zdobyć 100.
+  //
+  // Top:  walka 1v1, tanking, wieże, CS
+  // Jng:  obiektywy, clutch (ganki, steale), wizja
+  // Mid:  damage, walka, roaming/clutch
+  // ADC:  damage, ekonomia, carry potential
+  // Sup:  wizja, utility (CC, heal, shield), playmaking
   // ═══════════════════════════════════════════════
   const roleWeights: Record<string, Record<string, number>> = {
-    TOP:     { combat: 1.10, damage: 1.00, objectives: 1.15, economy: 1.10, vision: 0.75, utility: 1.05, clutch: 1.00, impact: 1.00, winContribution: 1.00 },
-    JUNGLE:  { combat: 1.00, damage: 0.75, objectives: 1.40, economy: 0.65, vision: 1.15, utility: 0.90, clutch: 1.30, impact: 1.00, winContribution: 1.00 },
-    MIDDLE:  { combat: 1.10, damage: 1.20, objectives: 0.90, economy: 1.05, vision: 0.80, utility: 0.80, clutch: 1.10, impact: 1.00, winContribution: 1.00 },
-    BOTTOM:  { combat: 1.00, damage: 1.30, objectives: 0.90, economy: 1.25, vision: 0.65, utility: 0.50, clutch: 0.85, impact: 1.00, winContribution: 1.05 },
-    UTILITY: { combat: 0.85, damage: 0.50, objectives: 0.80, economy: 0.45, vision: 1.50, utility: 1.50, clutch: 1.15, impact: 1.00, winContribution: 1.00 },
+    //            combat  dmg    obj    eco    vis    util   clutch impact win
+    TOP:     { combat: 1.15, damage: 1.00, objectives: 1.10, economy: 1.00, vision: 0.85, utility: 1.15, clutch: 0.95, impact: 1.00, winContribution: 1.00 },
+    JUNGLE:  { combat: 0.95, damage: 0.85, objectives: 1.25, economy: 0.80, vision: 1.10, utility: 0.95, clutch: 1.20, impact: 1.00, winContribution: 1.00 },
+    MIDDLE:  { combat: 1.10, damage: 1.15, objectives: 0.95, economy: 1.00, vision: 0.85, utility: 0.85, clutch: 1.10, impact: 1.00, winContribution: 1.00 },
+    BOTTOM:  { combat: 1.00, damage: 1.20, objectives: 0.90, economy: 1.15, vision: 0.80, utility: 0.75, clutch: 0.90, impact: 1.00, winContribution: 1.05 },
+    UTILITY: { combat: 0.90, damage: 0.75, objectives: 0.85, economy: 0.75, vision: 1.25, utility: 1.25, clutch: 1.10, impact: 1.00, winContribution: 1.00 },
     DEFAULT: { combat: 1.00, damage: 1.00, objectives: 1.00, economy: 1.00, vision: 1.00, utility: 1.00, clutch: 1.00, impact: 1.00, winContribution: 1.00 },
   }
   const categoryMax: Record<string, number> = {
