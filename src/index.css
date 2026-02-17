@@ -1772,8 +1772,7 @@ html,body,#root{
 }
 .fm-sb-hdr-items{
   font-size:9px;
-  color:var(--text-muted);
-  opacity:0.5;
+  color:rgba(255,255,255,0.6);
   text-align:center;
   min-width:162px;
   font-family:'Montserrat',sans-serif;
@@ -1796,10 +1795,10 @@ html,body,#root{
   gap:4px;
   text-align:center;
   font-size:10px;
-  font-weight:600;
-  color:var(--text-muted);
+  font-weight:700;
+  color:rgba(255,255,255,0.85);
   text-transform:uppercase;
-  letter-spacing:0.03em;
+  letter-spacing:0.05em;
 }
 
 /* Player row */
@@ -1845,15 +1844,14 @@ html,body,#root{
 .fm-sb-name span{
   font-size:12px;
   font-weight:600;
-  color:var(--text-primary);
+  color:#fff;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
 .fm-sb-name small{
   font-size:10px;
-  color:var(--text-muted);
-  opacity:0.7;
+  color:rgba(255,255,255,0.55);
 }
 
 /* ——— RANK BADGES ——— */
@@ -1924,7 +1922,7 @@ html,body,#root{
   gap:4px;
   text-align:center;
   font-size:11px;
-  color:var(--text-secondary);
+  color:rgba(255,255,255,0.88);
 }
 .fm-sb-kda{
   font-weight:600;
