@@ -678,6 +678,7 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
   const [subPage, setSubPage] = useState<'overview' | 'matches'>('overview')
   const [matchFilter, setMatchFilter] = useState<'all' | 'wins' | 'losses'>('all')
   const [expandedMatch, setExpandedMatch] = useState<number | null>(null)
+  const [analysisMatch, setAnalysisMatch] = useState<number | null>(null)
   const [itemNames, setItemNames] = useState<Record<number, string>>({})
   const matchesScrollRef = useRef<HTMLDivElement>(null)
   const savedScrollRef = useRef<number>(0)
@@ -1587,6 +1588,300 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
           </div>
         </div>
       </div>
+      ) : analysisMatch !== null ? (
+      /* ════════════════════════════════════════════
+         ANALYSIS PAGE — Głębsza Analiza meczu
+         ════════════════════════════════════════════ */
+      (() => {
+        const amIdx = analysisMatch
+        const match = recentMatches.filter(m => {
+          if (matchFilter === 'all') return true
+          const pp = m.info.participants.find(pp => pp.puuid === account.puuid)
+          if (!pp) return false
+          return matchFilter === 'wins' ? pp.win : !pp.win
+        })[amIdx]
+        if (!match) return <div className="fp-matches"><p>Brak danych meczu</p></div>
+        const me = match.info.participants.find(pp => pp.puuid === account.puuid)!
+        const myTeam = match.info.participants.filter(pp => pp.teamId === me.teamId)
+        const enemyTeam = match.info.participants.filter(pp => pp.teamId !== me.teamId)
+        const duration = Math.floor(match.info.gameDuration / 60)
+        const minutes = match.info.gameDuration / 60
+        const cs = me.totalMinionsKilled + (me.neutralMinionsKilled || 0)
+        const csPerMin = minutes > 0 ? (cs / minutes).toFixed(1) : '0.0'
+        const kda = me.deaths === 0 ? (me.kills + me.assists) : (me.kills + me.assists) / me.deaths
+        const rankings = rankPlayersInMatch(match.info.participants, match.info.gameDuration, match.info.teams)
+        const myRank = rankings.get(me.puuid)!
+        const bd = myRank.breakdown
+        const champImg = `https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${me.championName}.png`
+        const lane = normalizePosition(me.teamPosition)
+
+        // Category info for radar + analysis
+        const categories = [
+          { key: 'combat', label: 'Walka', max: 25, value: bd.combat, icon: '⚔️' },
+          { key: 'damage', label: 'Obrażenia', max: 18, value: bd.damage, icon: '💥' },
+          { key: 'objectives', label: 'Cele', max: 20, value: bd.objectives, icon: '🏰' },
+          { key: 'economy', label: 'Ekonomia', max: 10, value: bd.economy, icon: '💰' },
+          { key: 'vision', label: 'Wizja', max: 8, value: bd.vision, icon: '👁️' },
+          { key: 'utility', label: 'Użyteczność', max: 12, value: bd.utility, icon: '🛡️' },
+          { key: 'clutch', label: 'Clutch', max: 12, value: bd.clutch, icon: '🎯' },
+          { key: 'impact', label: 'Impact', max: 10, value: bd.impact, icon: '⚡' },
+          { key: 'winContribution', label: 'Wkład', max: 10, value: bd.winContribution, icon: '🏆' },
+        ]
+        const sorted = [...categories].sort((a, b) => (b.value / b.max) - (a.value / a.max))
+        const strengths = sorted.slice(0, 3)
+        const weaknesses = sorted.slice(-3).reverse()
+
+        // Compare to match average
+        const allBreakdowns = match.info.participants.map(pp => rankings.get(pp.puuid)?.breakdown).filter(Boolean) as typeof bd[]
+        const avg = (key: keyof typeof bd) => allBreakdowns.reduce((s, b) => s + b[key], 0) / allBreakdowns.length
+
+        // Tips based on weaknesses
+        const tips: Record<string, string[]> = {
+          combat: ['Staraj się podejmować walki z przewagą liczebną', 'Unikaj niepotrzebnych śmierci — graj ostrożniej', 'Pilnuj pozycjonowania w teamfightach'],
+          damage: ['Skupiaj się na zadawaniu DMG priorytetowym celom', 'Optymalizuj build pod damage output', 'Rób częstsze trade\'y na linii'],
+          objectives: ['Priorytetyzuj obiektywy po wygranych teamfightach', 'Pomagaj team przy Baronie/Dragonie', 'Push wieże po udanym ganku'],
+          economy: ['Popraw CS/min — celuj w 7+ CS/min', 'Nie marnuj złota — kupuj w optymalnych momentach', 'Farmuj boczne linie między teamfightami'],
+          vision: ['Kupuj więcej Control Wardów', 'Warduj kluczowe punkty przed obiektywami', 'Niszcz wardy przeciwników (Sweeper)'],
+          utility: ['Używaj CC w kluczowych momentach', 'Chroń carry swoimi umiejętnościami', 'Angażuj się w tankowanie obrażeń dla drużyny'],
+          clutch: ['Staraj się zdobywać First Blood', 'Aplikuj presję na wieże wcześnie', 'Bądź aktywny na mapie — roam, gang'],
+          impact: ['Popraw ogólną efektywność w grze', 'Bądź konsekwentny — utrzymuj wysoki poziom przez całą grę', 'Balansuj farm z walkami drużynowymi'],
+          winContribution: ['Zwiększ swój udział w zabójstwach drużyny', 'Zadawaj więcej DMG w teamfightach', 'Zdobywaj więcej złota przez efektywny farm i asysty'],
+        }
+
+        // Enemy laner comparison
+        const myLaneEnemy = enemyTeam.find(e => normalizePosition(e.teamPosition) === lane)
+        const enemyRank = myLaneEnemy ? rankings.get(myLaneEnemy.puuid) : null
+
+        // Radar chart SVG
+        const radarSize = 280
+        const radarCenter = radarSize / 2
+        const radarRadius = 110
+        const radarCategories = categories.slice(0, 8) // 8 categories for radar
+        const radarPoints = radarCategories.map((cat, i) => {
+          const angle = (Math.PI * 2 * i) / radarCategories.length - Math.PI / 2
+          const pct = Math.min(cat.value / cat.max, 1)
+          const x = radarCenter + Math.cos(angle) * radarRadius * pct
+          const y = radarCenter + Math.sin(angle) * radarRadius * pct
+          return { x, y, label: cat.label, pct }
+        })
+        const radarAvgPoints = radarCategories.map((cat, i) => {
+          const angle = (Math.PI * 2 * i) / radarCategories.length - Math.PI / 2
+          const avgVal = avg(cat.key as keyof typeof bd)
+          const pct = Math.min(avgVal / cat.max, 1)
+          const x = radarCenter + Math.cos(angle) * radarRadius * pct
+          const y = radarCenter + Math.sin(angle) * radarRadius * pct
+          return { x, y }
+        })
+        const radarPolygon = radarPoints.map(p => `${p.x},${p.y}`).join(' ')
+        const radarAvgPolygon = radarAvgPoints.map(p => `${p.x},${p.y}`).join(' ')
+        const radarGridLines = [0.25, 0.5, 0.75, 1].map(pct =>
+          radarCategories.map((_, i) => {
+            const angle = (Math.PI * 2 * i) / radarCategories.length - Math.PI / 2
+            return `${radarCenter + Math.cos(angle) * radarRadius * pct},${radarCenter + Math.sin(angle) * radarRadius * pct}`
+          }).join(' ')
+        )
+        const radarLabels = radarCategories.map((cat, i) => {
+          const angle = (Math.PI * 2 * i) / radarCategories.length - Math.PI / 2
+          const x = radarCenter + Math.cos(angle) * (radarRadius + 22)
+          const y = radarCenter + Math.sin(angle) * (radarRadius + 22)
+          return { x, y, label: cat.label }
+        })
+
+        // Per-minute stats
+        const dmgPerMin = minutes > 0 ? ((me.totalDamageDealtToChampions || 0) / minutes).toFixed(0) : '0'
+        const goldPerMin = minutes > 0 ? ((me.goldEarned || 0) / minutes).toFixed(0) : '0'
+        const visionPerMin = minutes > 0 ? ((me.visionScore || 0) / minutes).toFixed(1) : '0'
+
+        return (
+      <div className="fp-matches an-page">
+        <div className="an-header">
+          <button className="an-back-btn" onClick={() => setAnalysisMatch(null)}>← Powrót do meczy</button>
+          <h2 className="an-title">Analiza Meczu</h2>
+        </div>
+
+        {/* Top summary card */}
+        <div className="an-summary-card">
+          <div className="an-summary-left">
+            <img src={champImg} alt={me.championName} className="an-champ-img" />
+            <div className="an-summary-info">
+              <div className="an-champ-name">{me.championName}</div>
+              <div className="an-lane">{lane}</div>
+              <div className={`an-result ${me.win ? 'an-win' : 'an-loss'}`}>{me.win ? 'ZWYCIĘSTWO' : 'PORAŻKA'}</div>
+            </div>
+          </div>
+          <div className="an-summary-stats">
+            <div className="an-stat-big">
+              <span className="an-stat-val an-gold-text">{myRank.score.toFixed(0)}</span>
+              <span className="an-stat-label">EdgeScore</span>
+            </div>
+            <div className="an-stat-big">
+              <span className="an-stat-val">#{myRank.rank}</span>
+              <span className="an-stat-label">Ranking</span>
+            </div>
+            <div className="an-stat-big">
+              <span className="an-stat-val">{me.kills}/{me.deaths}/{me.assists}</span>
+              <span className="an-stat-label">KDA ({kda.toFixed(1)})</span>
+            </div>
+            <div className="an-stat-big">
+              <span className="an-stat-val">{duration} min</span>
+              <span className="an-stat-label">Czas gry</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Radar chart + category bars */}
+        <div className="an-charts-row">
+          <div className="an-panel an-radar-panel">
+            <h3 className="an-panel-title">Profil umiejętności</h3>
+            <svg viewBox={`0 0 ${radarSize} ${radarSize}`} className="an-radar-svg">
+              {radarGridLines.map((pts, i) => (
+                <polygon key={i} points={pts} fill="none" stroke="rgba(184,107,255,0.12)" strokeWidth="1" />
+              ))}
+              {radarCategories.map((_, i) => {
+                const angle = (Math.PI * 2 * i) / radarCategories.length - Math.PI / 2
+                return <line key={i} x1={radarCenter} y1={radarCenter}
+                  x2={radarCenter + Math.cos(angle) * radarRadius}
+                  y2={radarCenter + Math.sin(angle) * radarRadius}
+                  stroke="rgba(184,107,255,0.08)" strokeWidth="1" />
+              })}
+              <polygon points={radarAvgPolygon} fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.25)" strokeWidth="1" strokeDasharray="4 2" />
+              <polygon points={radarPolygon} fill="rgba(184,107,255,0.18)" stroke="var(--accent-1)" strokeWidth="2" />
+              {radarPoints.map((p, i) => (
+                <circle key={i} cx={p.x} cy={p.y} r="3.5" fill="var(--accent-1)" stroke="#fff" strokeWidth="1" />
+              ))}
+              {radarLabels.map((l, i) => (
+                <text key={i} x={l.x} y={l.y} textAnchor="middle" dominantBaseline="middle"
+                  fill="rgba(255,255,255,0.7)" fontSize="9" fontFamily="Montserrat">{l.label}</text>
+              ))}
+            </svg>
+            <div className="an-radar-legend">
+              <span className="an-legend-you">■ Ty</span>
+              <span className="an-legend-avg">□ Średnia meczu</span>
+            </div>
+          </div>
+
+          <div className="an-panel an-bars-panel">
+            <h3 className="an-panel-title">Kategorie EdgeScore</h3>
+            <div className="an-bars-list">
+              {categories.map(cat => {
+                const pct = Math.min(cat.value / cat.max * 100, 100)
+                const avgPct = Math.min(avg(cat.key as keyof typeof bd) / cat.max * 100, 100)
+                return (
+                  <div key={cat.key} className="an-bar-row">
+                    <span className="an-bar-icon">{cat.icon}</span>
+                    <span className="an-bar-label">{cat.label}</span>
+                    <div className="an-bar-track">
+                      <div className="an-bar-avg" style={{ width: `${avgPct}%` }}></div>
+                      <div className="an-bar-fill" style={{ width: `${pct}%` }}></div>
+                    </div>
+                    <span className="an-bar-val">{cat.value.toFixed(1)}/{cat.max}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Per-minute stats */}
+        <div className="an-permin-row">
+          {[
+            { label: 'DMG/min', value: dmgPerMin, icon: '💥' },
+            { label: 'Złoto/min', value: goldPerMin, icon: '💰' },
+            { label: 'CS/min', value: csPerMin, icon: '🗡️' },
+            { label: 'Wizja/min', value: visionPerMin, icon: '👁️' },
+            { label: 'Kill Part.', value: `${(((me.kills + me.assists) / Math.max(myTeam.reduce((s, t) => s + t.kills, 0), 1)) * 100).toFixed(0)}%`, icon: '🤝' },
+            { label: 'DMG Taken/min', value: minutes > 0 ? ((me.totalDamageTaken || 0) / minutes).toFixed(0) : '0', icon: '🛡️' },
+          ].map(s => (
+            <div key={s.label} className="an-permin-card">
+              <span className="an-permin-icon">{s.icon}</span>
+              <span className="an-permin-val">{s.value}</span>
+              <span className="an-permin-label">{s.label}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Strengths + Weaknesses */}
+        <div className="an-sw-row">
+          <div className="an-panel an-strengths">
+            <h3 className="an-panel-title">💪 Mocne Strony</h3>
+            {strengths.map(s => (
+              <div key={s.key} className="an-sw-item an-sw-good">
+                <span className="an-sw-icon">{s.icon}</span>
+                <div className="an-sw-info">
+                  <span className="an-sw-name">{s.label}</span>
+                  <span className="an-sw-pct">{(s.value / s.max * 100).toFixed(0)}%</span>
+                </div>
+                <div className="an-sw-bar"><div className="an-sw-fill an-fill-good" style={{ width: `${s.value / s.max * 100}%` }}></div></div>
+              </div>
+            ))}
+          </div>
+          <div className="an-panel an-weaknesses">
+            <h3 className="an-panel-title">📉 Do Poprawy</h3>
+            {weaknesses.map(w => {
+              const wTips = tips[w.key] || []
+              return (
+                <div key={w.key} className="an-sw-item an-sw-bad">
+                  <span className="an-sw-icon">{w.icon}</span>
+                  <div className="an-sw-info">
+                    <span className="an-sw-name">{w.label}</span>
+                    <span className="an-sw-pct">{(w.value / w.max * 100).toFixed(0)}%</span>
+                  </div>
+                  <div className="an-sw-bar"><div className="an-sw-fill an-fill-bad" style={{ width: `${w.value / w.max * 100}%` }}></div></div>
+                  {wTips.length > 0 && (
+                    <ul className="an-tips">
+                      {wTips.map((tip, i) => <li key={i}>{tip}</li>)}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Lane opponent comparison */}
+        {myLaneEnemy && enemyRank && (
+          <div className="an-panel an-lane-cmp">
+            <h3 className="an-panel-title">🆚 Porównanie z lane opponent ({normalizePosition(myLaneEnemy.teamPosition)})</h3>
+            <div className="an-cmp-row">
+              <div className="an-cmp-player">
+                <img src={champImg} alt={me.championName} className="an-cmp-champ" />
+                <span className="an-cmp-name">{me.riotIdGameName || me.summonerName || me.championName}</span>
+                <span className="an-cmp-score an-gold-text">{myRank.score.toFixed(0)}</span>
+              </div>
+              <div className="an-cmp-bars">
+                {[
+                  { label: 'KDA', left: kda, right: myLaneEnemy.deaths === 0 ? (myLaneEnemy.kills + myLaneEnemy.assists) : (myLaneEnemy.kills + myLaneEnemy.assists) / myLaneEnemy.deaths },
+                  { label: 'DMG', left: me.totalDamageDealtToChampions, right: myLaneEnemy.totalDamageDealtToChampions },
+                  { label: 'CS', left: cs, right: myLaneEnemy.totalMinionsKilled + (myLaneEnemy.neutralMinionsKilled || 0) },
+                  { label: 'Gold', left: me.goldEarned, right: myLaneEnemy.goldEarned },
+                  { label: 'Vision', left: me.visionScore, right: myLaneEnemy.visionScore },
+                ].map(c => {
+                  const total = Math.max(c.left + c.right, 1)
+                  const leftPct = (c.left / total) * 100
+                  return (
+                    <div key={c.label} className="an-cmp-bar-row">
+                      <span className="an-cmp-val-left">{typeof c.left === 'number' ? (c.left > 999 ? (c.left / 1000).toFixed(1) + 'k' : c.left.toFixed(1)) : c.left}</span>
+                      <div className="an-cmp-bar">
+                        <div className="an-cmp-fill-left" style={{ width: `${leftPct}%` }}></div>
+                        <div className="an-cmp-fill-right" style={{ width: `${100 - leftPct}%` }}></div>
+                      </div>
+                      <span className="an-cmp-val-right">{typeof c.right === 'number' ? (c.right > 999 ? (c.right / 1000).toFixed(1) + 'k' : c.right.toFixed(1)) : c.right}</span>
+                      <span className="an-cmp-label">{c.label}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="an-cmp-player">
+                <img src={`https://ddragon.leagueoflegends.com/cdn/16.3.1/img/champion/${myLaneEnemy.championName}.png`} alt={myLaneEnemy.championName} className="an-cmp-champ" />
+                <span className="an-cmp-name">{myLaneEnemy.riotIdGameName || myLaneEnemy.summonerName || myLaneEnemy.championName}</span>
+                <span className="an-cmp-score">{enemyRank.score.toFixed(0)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+        )
+      })()
       ) : (
       <div className="fp-matches" ref={matchesScrollRef}>
         <div className="fp-matches-header">
@@ -1822,6 +2117,10 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
                         <span>{enemyTeam.reduce((s, tp) => s + tp.goldEarned, 0).toLocaleString()} złota</span>
                       </div>
                     </div>
+                    {/* Analiza button */}
+                    <button className="fm-analysis-btn" onClick={() => setAnalysisMatch(idx)}>
+                      <span className="fm-analysis-btn-icon">📊</span> Głębsza Analiza
+                    </button>
                   </div>
                 )}
               </div>
