@@ -1699,6 +1699,15 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
           <h2 className="an-title">Analiza Meczu</h2>
         </div>
 
+        {/* Win/Loss banner */}
+        <div className={`an-result-banner ${me.win ? 'an-banner-win' : 'an-banner-loss'}`}>
+          <span className="an-banner-star">✦</span>
+          <span className="an-banner-line"></span>
+          <span className="an-banner-text">{me.win ? 'ZWYCIĘSTWO' : 'PORAŻKA'}</span>
+          <span className="an-banner-line"></span>
+          <span className="an-banner-star">✦</span>
+        </div>
+
         {/* Top summary card */}
         <div className="an-summary-card">
           <div className="an-summary-left">
@@ -1706,7 +1715,6 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
             <div className="an-summary-info">
               <div className="an-champ-name">{me.championName}</div>
               <div className="an-lane">{lane}</div>
-              <div className={`an-result ${me.win ? 'an-win' : 'an-loss'}`}>{me.win ? 'ZWYCIĘSTWO' : 'PORAŻKA'}</div>
             </div>
           </div>
           <div className="an-summary-stats">
