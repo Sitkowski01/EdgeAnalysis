@@ -2108,31 +2108,63 @@ html,body,#root{
 .an-result-banner{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding:10px 0;
+  justify-content:center;
+  gap:16px;
+  padding:14px 24px;
+  border-radius:10px;
+  position:relative;
+  overflow:hidden;
+}
+.an-result-banner::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  opacity:0.10;
+  pointer-events:none;
 }
 .an-banner-star{
-  font-size:16px;
-  opacity:0.8;
+  font-size:20px;
+  filter:drop-shadow(0 0 6px currentColor);
 }
 .an-banner-line{
   flex:1;
   height:2px;
+  max-width:120px;
 }
 .an-banner-text{
   font-family:'Cinzel',serif;
-  font-size:18px;
+  font-size:22px;
   font-weight:800;
-  letter-spacing:0.18em;
+  letter-spacing:0.22em;
   text-transform:uppercase;
-  text-shadow:0 2px 12px rgba(0,0,0,0.5);
+  filter:drop-shadow(0 0 8px currentColor);
 }
-.an-banner-win .an-banner-star{ color:#50c878; }
-.an-banner-win .an-banner-line{ background:linear-gradient(90deg, transparent, rgba(80,200,120,0.6), transparent); }
-.an-banner-win .an-banner-text{ color:#50c878; }
-.an-banner-loss .an-banner-star{ color:#ff5050; }
-.an-banner-loss .an-banner-line{ background:linear-gradient(90deg, transparent, rgba(255,80,80,0.6), transparent); }
-.an-banner-loss .an-banner-text{ color:#ff5050; }
+
+/* WIN variant */
+.an-banner-win{
+  background:linear-gradient(135deg, rgba(20,60,30,0.92), rgba(10,40,20,0.88));
+  border:2px solid rgba(80,200,120,0.6);
+  box-shadow:0 0 20px rgba(80,200,120,0.25), inset 0 0 30px rgba(80,200,120,0.08);
+}
+.an-banner-win::before{
+  background:radial-gradient(ellipse at center, rgba(80,200,120,0.3), transparent 70%);
+}
+.an-banner-win .an-banner-star{ color:#6fda96; }
+.an-banner-win .an-banner-line{ background:linear-gradient(90deg, transparent, rgba(80,200,120,0.7), transparent); }
+.an-banner-win .an-banner-text{ color:#6fda96; }
+
+/* LOSS variant */
+.an-banner-loss{
+  background:linear-gradient(135deg, rgba(60,15,15,0.92), rgba(40,10,10,0.88));
+  border:2px solid rgba(255,80,80,0.6);
+  box-shadow:0 0 20px rgba(255,80,80,0.25), inset 0 0 30px rgba(255,80,80,0.08);
+}
+.an-banner-loss::before{
+  background:radial-gradient(ellipse at center, rgba(255,80,80,0.3), transparent 70%);
+}
+.an-banner-loss .an-banner-star{ color:#ff6b6b; }
+.an-banner-loss .an-banner-line{ background:linear-gradient(90deg, transparent, rgba(255,80,80,0.7), transparent); }
+.an-banner-loss .an-banner-text{ color:#ff6b6b; }
 
 /* ——— Summary card ——— */
 .an-summary-card{
