@@ -1635,18 +1635,78 @@ function ProfilePage({ data, onLogoClick }: { data: SearchResult, onLogoClick: (
         const allBreakdowns = match.info.participants.map(pp => rankings.get(pp.puuid)?.breakdown).filter(Boolean) as typeof bd[]
         const avg = (key: keyof typeof bd) => allBreakdowns.reduce((s, b) => s + b[key], 0) / allBreakdowns.length
 
-        // Tips based on weaknesses
-        const tips: Record<string, string[]> = {
-          combat: ['Staraj się podejmować walki z przewagą liczebną', 'Unikaj niepotrzebnych śmierci — graj ostrożniej', 'Pilnuj pozycjonowania w teamfightach'],
+        // Tips based on weaknesses — per-role
+        const roleTips: Record<string, Record<string, string[]>> = {
+          Top: {
+            combat: ['Graj agresywniej w trade\'y 1v1 — wykorzystuj power spike\'i', 'Pilnuj cooldownów przeciwnika i karz go za zużyte skille', 'Kontroluj falę minków — freeze pod wieżą gdy jesteś silniejszy'],
+            damage: ['Optymalizuj build pod split-push i 1v1', 'Trade\'uj częściej na linii — short trade albo all-in', 'Po zdobyciu lead-u wywieraj presję na bocznej linii'],
+            objectives: ['Push wieżę po wygranym 1v1 lub ganku', 'Teleportuj się na Barona/Dragona w kluczowych momentach', 'Po zabiciu laner\'a od razu atakuj wieżę — nie wracaj do bazy'],
+            economy: ['Celuj w 8+ CS/min — freeze i slow-push', 'Nie trać CS przez niepotrzebne TP do teamfightów', 'Farmuj boczne linie gdy drużyna nie walczy o nic ważnego'],
+            vision: ['Warduj tri-brush i river aby unikać ganków', 'Kup Control Ward na river przed spawn\'em Heralda', 'Po push\'u deep-warduj wejścia do jungla przeciwnika'],
+            utility: ['Angażuj teamfighty z flanki', 'Tankuj obrażenia dla carry — bądź frontline\'em', 'Używaj CC na priorytetowe cele — ADC/Mid przeciwnika'],
+            clutch: ['Staraj się zdobyć solokilla przed 10 minutą', 'Rób TP-play\'e na bot lane gdy masz przewagę', 'Wywieraj presję na wieże wcześnie — Rift Herald top'],
+            impact: ['Dominuj linię — kontroluj falę i strefuj przeciwnika od CS', 'Przekładaj lead z liny na mapę — roam i TP', 'Bądź konsekwentny — nie oddawaj bounty po zdobyciu lead\'u'],
+            winContribution: ['Split-pushuj z TP gotowym do teamfightu', 'Aplikuj presję na bocznych liniach w late game', 'Angażuj walki drużynowe tylko gdy masz przewagę liczebną'],
+          },
+          Jng: {
+            combat: ['Gankuj z przewagą — nie diveuj pod wieżą bez pewności', 'Kontruj ganki przeciwnego junglera — śledź jego pathing', 'Walcz o Scuttle Craby — to darmowe złoto i wizja'],
+            damage: ['Farmuj camp\'y efektywnie — nie tracp obrażeń', 'Buduj obrażenia gdy drużyna potrzebuje carry', 'Focusuj squishy cele w teamfightach — ADC/Mid'],
+            objectives: ['Trackuj timery Dragon/Baron — bądź gotowy 30s wcześniej', 'Steal obiektywy Smitem — pilnuj HP-baru', 'Rób Rift Heralda przed 14 minutą i użyj go efektywnie'],
+            economy: ['Nie ignoruj farm\'u — clear\'uj camp\'y między gankami', 'Zabieraj farm z pustych linii gdy laner\'zy są na ARAM-ie', 'Nie marnuj czasu na nieudane ganki — farm lub reset'],
+            vision: ['Warduj obiektywny 60s przed spawn\'em Dragona/Barona', 'Trackuj junglera przeciwnika przez deep wardy', 'Kupuj Control Ward na KAŻDY reset — kluczowe dla junglera'],
+            utility: ['Używaj CC do setup\'owania kilów dla lanerów', 'Peeluj carry w teamfightach jeśli grasz tanka', 'Dawaj buffy lanerowi z najlepszym lead\'em'],
+            clutch: ['Zdobywaj First Blood przez early gank — level 3 power spike', 'Steal obiektywy — ćwicz timing Smite\'a', 'Bądź na mapie w kluczowych momentach — counter-gank i dive'],
+            impact: ['Graj proaktywnie — inicjuj play\'e zamiast reagować', 'Kontroluj tempo gry — kiedy forsować, kiedy farmić', 'Miej plan na pierwsze 5 minut gry — nie biegaj bez celu'],
+            winContribution: ['Pomagaj wygrywającym liniom snowballować', 'Dwigaj przegrywające linie ostrożnie — nie dawaj double kili', 'Organizuj drużynę wokół obiektywów — ping\'uj i leaduj'],
+          },
+          Mid: {
+            combat: ['Trade\'uj w okienkach gdy przeciwnik zużyje skille', 'Pozycjonuj się bezpiecznie w teamfightach — backline', 'Pilnuj spacing\'u — nie wchodź w zasięg engage\'u'],
+            damage: ['Skupiaj DMG na carry przeciwnika — nie marnuj skilli na tanka', 'Optymalizuj combo — ćwicz one-shot pattern postaci', 'Poke\'uj przed teamfightem — zmuszaj do bazy przed obiektywem'],
+            objectives: ['Shov\'uj linię i roam\'uj na Dragona/Heralda', 'Po wygranym teamfighcie od razu atakuj wieżę/obiektyw', 'Pomagaj junglerowi przy contest\'ach o Scuttle/invade'],
+            economy: ['CS pod wieżą perfekcyjnie — ćwicz pattern: AA-skill-AA', 'Nie trać minków przez random roam — shov\'uj najpierw', 'Zabieraj raptor/wilki po push\'u linii'],
+            vision: ['Warduj river bushes po obu stronach', 'Trackuj junglera — pinguj MIA', 'Kup Control Ward na pixel brush lub raptor bush'],
+            utility: ['Roam\'uj na bot/top gdy masz priorytet linii', 'Używaj CC na priorytetowe cele w teamfightach', 'Chroń ADC jeśli grasz maga kontrolnego'],
+            clutch: ['Zdobywaj solo-kille na linii — wykorzystuj power spike\'i', 'Roam i gank na boczne linie po 6 lvl', 'Graj clutch\'owe walki pod wieżą gdy masz ignite'],
+            impact: ['Zdobądź priorytet linii — push\'uj i roam\'uj', 'Bądź pierwszy na teamfightach — nie farmuj gdy drużyna walczy', 'Prowadź grę — kontroluj tempo mid/late game'],
+            winContribution: ['Używaj wave managementu do tworzenia presji na mapie', 'Teleportuj się na bot lane w kluczowych momentach (jeśli masz TP)', 'Zadawaj AOE damage w teamfightach — to klucz do wygrywania walk'],
+          },
+          Adc: {
+            combat: ['Pilnuj pozycjonowania — zostań za frontline\'em', 'Nie wchodź w zasięg assassin\'ów/bruiserów', 'Kite\'uj - atakuj ruszaj się - to klucz do przeżycia'],
+            damage: ['Skupiaj auto-ataki na najbliższym bezpiecznym celu', 'Optymalizuj build — sprawdzaj co daje największy DPS', 'Trade\'uj na linii z supportem — follow-upuj jego CC'],
+            objectives: ['Skupiaj DMG na Dragonie/Baronie — ADC ma najwyższy DPS', 'Push\'uj wieże po wygranych walkach — wieże > chase', 'Bądź na Dragonie z drużyną — nie farmuj bocznej linii'],
+            economy: ['Celuj w 8+ CS/min na ADC — to twój główny dochód', 'Last-hit\'uj perfekcyjnie pod wieżą', 'Farmuj boczne linie bezpiecznie w mid/late game'],
+            vision: ['Warduj tri-brush i river aby grać bezpiecznie', 'Nie facecheckuj bushów — proś support o ward', 'Kup Control Ward na lane brush w early game'],
+            utility: ['Skupiaj się na zadawaniu DMG — to twoja główna rola', 'Peel\'uj siebie — używaj Galeforce/Flash defensywnie', 'Komunikuj cooldowny summonerów z supportem'],
+            clutch: ['Zdobywaj kille w teamfightach — cleanup po walkach', 'Nie graj agresywnie bez support\'a obok', 'Używaj Heal/Barrier w kluczowym momencie — nie za wcześnie'],
+            impact: ['Farmuj bezpiecznie early — ADC scale\'uje w late game', 'Bądź na każdym teamfighcie — twój DPS jest kluczowy', 'Nie umieraj bezsensownie — twoje życie = DPS drużyny'],
+            winContribution: ['Graj teamfighty od tyłu — auto-attack na najbliższy cel', 'Bierz farmy i scale\'uj — 3+ itemy to twój power spike', 'Skupiaj obiektyw DMG — ADC pushuje wieże najszybciej'],
+          },
+          Sup: {
+            combat: ['Inicjuj walki z przewagą — nie all-in\'uj bezsensownie', 'Peel\'uj ADC — to twój priorytet #1', 'Angażuj gdy cooldowny przeciwnika są na down\'ie'],
+            damage: ['Poke\'uj na linii — rób trade\'y za darmo', 'Buduj damage items jeśli drużyna potrzebuje AP', 'Używaj ignite na kluczowym celu w teamfighcie'],
+            objectives: ['Warduj Dragon/Baron 60s wcześniej', 'Sweep\'uj obiektyw przed startem — denial wizji', 'Tankuj Dragona/Barona jeśli grasz tanka'],
+            economy: ['Kupuj Control Wardy regularnie — 2-3 na grę minimum', 'Używaj support item\'u efektywnie — proc\'uj go na linii', 'Nie kradnij CS ADC — bierz tylko gdy jest poza linią'],
+            vision: ['Kupuj 2+ Control Wardy na każdy reset', 'Warduj głęboko — deep vision w junglu przeciwnika', 'Sweep\'uj kluczowe busze — Dragon pit, Baron, tri-brush'],
+            utility: ['Maksymalizuj CC na priorytetowych celach', 'Używaj shieldów/healów na właściwego sojusznika', 'Roam\'uj na mid po push\'u bot — twórz presję na mapie'],
+            clutch: ['Zrób play\'a na bot lane — hook/engage na level 2', 'Roam\'uj z junglem na mid — support gang = zaskoczenie', 'Flashuj na kluczowe CC — engage Flash+R/Q'],
+            impact: ['Kontroluj wizję — to twój najważniejszy wkład', 'Bądź proaktywny — nie stój za ADC i nie czekaj', 'Prowadź drużynę — ping\'uj obiektywy i rotacje'],
+            winContribution: ['Chroń osobę z najwyższym bounty w drużynie', 'Engaguj teamfighty z dobrym CC — to wygrywa walki', 'Sweep\'uj i warduj — kontrola mapy = kontrola gry'],
+          },
+        }
+
+        // Get tips for current role, fallback to generic
+        const genericTips: Record<string, string[]> = {
+          combat: ['Staraj się podejmować walki z przewagą liczebną', 'Unikaj niepotrzebnych śmierci', 'Pilnuj pozycjonowania w teamfightach'],
           damage: ['Skupiaj się na zadawaniu DMG priorytetowym celom', 'Optymalizuj build pod damage output', 'Rób częstsze trade\'y na linii'],
           objectives: ['Priorytetyzuj obiektywy po wygranych teamfightach', 'Pomagaj team przy Baronie/Dragonie', 'Push wieże po udanym ganku'],
           economy: ['Popraw CS/min — celuj w 7+ CS/min', 'Nie marnuj złota — kupuj w optymalnych momentach', 'Farmuj boczne linie między teamfightami'],
           vision: ['Kupuj więcej Control Wardów', 'Warduj kluczowe punkty przed obiektywami', 'Niszcz wardy przeciwników (Sweeper)'],
           utility: ['Używaj CC w kluczowych momentach', 'Chroń carry swoimi umiejętnościami', 'Angażuj się w tankowanie obrażeń dla drużyny'],
           clutch: ['Staraj się zdobywać First Blood', 'Aplikuj presję na wieże wcześnie', 'Bądź aktywny na mapie — roam, gang'],
-          impact: ['Popraw ogólną efektywność w grze', 'Bądź konsekwentny — utrzymuj wysoki poziom przez całą grę', 'Balansuj farm z walkami drużynowymi'],
-          winContribution: ['Zwiększ swój udział w zabójstwach drużyny', 'Zadawaj więcej DMG w teamfightach', 'Zdobywaj więcej złota przez efektywny farm i asysty'],
+          impact: ['Popraw ogólną efektywność w grze', 'Bądź konsekwentny — utrzymuj wysoki poziom', 'Balansuj farm z walkami drużynowymi'],
+          winContribution: ['Zwiększ swój udział w zabójstwach drużyny', 'Zadawaj więcej DMG w teamfightach', 'Zdobywaj więcej złota efektywnie'],
         }
+        const tips = roleTips[lane] || genericTips
 
         // Enemy laner comparison
         const myLaneEnemy = enemyTeam.find(e => normalizePosition(e.teamPosition) === lane)
