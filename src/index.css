@@ -1779,25 +1779,25 @@ html,body,#root{
 /* Team header row */
 .fm-sb-team-header{
   display:grid;
-  grid-template-columns:28px 170px 1fr auto;
+  grid-template-columns:32px 190px 1fr auto;
   align-items:center;
-  padding:5px 10px;
-  font-size:10px;
+  padding:7px 12px;
+  font-size:12px;
   font-weight:700;
   text-transform:uppercase;
   letter-spacing:0.08em;
   font-family:'Cinzel',serif;
 }
 .fm-sb-hdr-rank{
-  font-size:10px;
-  opacity:0.7;
+  font-size:11px;
+  opacity:0.8;
   text-align:center;
 }
 .fm-sb-hdr-items{
-  font-size:9px;
-  color:rgba(255,255,255,0.6);
+  font-size:10px;
+  color:rgba(255,255,255,0.7);
   text-align:center;
-  min-width:155px;
+  min-width:175px;
   font-family:'Montserrat',sans-serif;
 }
 .fm-sb-ally{
@@ -1814,12 +1814,12 @@ html,body,#root{
 /* Column labels in header */
 .fm-sb-team-header .fm-sb-cols{
   display:grid;
-  grid-template-columns:55px 90px 70px 45px 55px 65px;
-  gap:3px;
+  grid-template-columns:60px 95px 75px 50px 60px 70px;
+  gap:4px;
   text-align:center;
-  font-size:9px;
+  font-size:11px;
   font-weight:700;
-  color:rgba(255,255,255,0.85);
+  color:rgba(255,255,255,0.9);
   text-transform:uppercase;
   letter-spacing:0.05em;
 }
@@ -1827,19 +1827,19 @@ html,body,#root{
 /* Player row */
 .fm-sb-row{
   display:grid;
-  grid-template-columns:28px 170px 1fr auto;
+  grid-template-columns:32px 190px 1fr auto;
   align-items:center;
-  padding:3px 10px;
-  background:rgba(8,4,18,0.25);
-  border-bottom:1px solid rgba(184,107,255,0.06);
+  padding:6px 12px;
+  background:rgba(8,4,18,0.35);
+  border-bottom:1px solid rgba(184,107,255,0.08);
   transition:background 0.15s;
 }
 .fm-sb-row:hover{
-  background:rgba(15,8,30,0.45);
+  background:rgba(15,8,30,0.55);
 }
 .fm-sb-me{
-  background:rgba(184,107,255,0.1) !important;
-  box-shadow:inset 3px 0 0 var(--accent-1), inset 0 0 20px rgba(184,107,255,0.05);
+  background:rgba(184,107,255,0.14) !important;
+  box-shadow:inset 3px 0 0 var(--accent-1), inset 0 0 20px rgba(184,107,255,0.08);
 }
 
 /* Player info (champ icon + name) */
@@ -1850,13 +1850,13 @@ html,body,#root{
   min-width:0;
 }
 .fm-sb-champ{
-  width:26px;
-  height:26px;
+  width:32px;
+  height:32px;
   border-radius:50%;
   object-fit:cover;
-  border:1.5px solid rgba(184,107,255,0.28);
+  border:1.5px solid rgba(184,107,255,0.35);
   flex-shrink:0;
-  box-shadow:0 1px 4px rgba(0,0,0,0.3);
+  box-shadow:0 1px 6px rgba(0,0,0,0.4);
 }
 .fm-sb-name{
   display:flex;
@@ -1864,7 +1864,7 @@ html,body,#root{
   min-width:0;
 }
 .fm-sb-name span{
-  font-size:11px;
+  font-size:13px;
   font-weight:600;
   color:#fff;
   white-space:nowrap;
@@ -1872,8 +1872,8 @@ html,body,#root{
   text-overflow:ellipsis;
 }
 .fm-sb-name small{
-  font-size:9px;
-  color:rgba(255,255,255,0.55);
+  font-size:10px;
+  color:rgba(255,255,255,0.65);
 }
 
 /* ——— RANK BADGES ——— */
@@ -1886,10 +1886,10 @@ html,body,#root{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  width:22px;
-  height:22px;
+  width:26px;
+  height:26px;
   border-radius:50%;
-  font-size:9px;
+  font-size:11px;
   font-weight:800;
   font-family:'Montserrat',sans-serif;
   line-height:1;
@@ -1940,11 +1940,11 @@ html,body,#root{
 /* Stat columns in player row */
 .fm-sb-row .fm-sb-cols{
   display:grid;
-  grid-template-columns:55px 90px 70px 45px 55px 65px;
-  gap:3px;
+  grid-template-columns:60px 95px 75px 50px 60px 70px;
+  gap:4px;
   text-align:center;
-  font-size:10px;
-  color:rgba(255,255,255,0.88);
+  font-size:13px;
+  color:rgba(255,255,255,0.92);
 }
 .fm-sb-kda{
   font-weight:600;
@@ -1952,8 +1952,8 @@ html,body,#root{
 }
 .fm-sb-kda small{
   font-weight:400;
-  opacity:0.6;
-  font-size:10px;
+  opacity:0.65;
+  font-size:11px;
 }
 
 /* EdgeScore in scoreboard */
@@ -1965,7 +1965,7 @@ html,body,#root{
   cursor:help;
 }
 .fm-sb-score b{
-  font-size:12px;
+  font-size:14px;
   color:var(--gold-main);
   font-weight:800;
 }
@@ -1976,11 +1976,11 @@ html,body,#root{
   justify-content:flex-end;
 }
 .fm-sb-item{
-  width:22px;
-  height:22px;
+  width:26px;
+  height:26px;
   border-radius:3px;
   background:rgba(184,107,255,0.06);
-  border:1px solid rgba(184,107,255,0.12);
+  border:1px solid rgba(184,107,255,0.15);
   overflow:hidden;
   transition:transform 0.1s, border-color 0.15s;
 }
@@ -2017,11 +2017,11 @@ html,body,#root{
   min-width:120px;
 }
 .fm-total-side span:first-child{
-  font-size:13px;
+  font-size:15px;
   font-weight:700;
 }
 .fm-total-side span:last-child{
-  font-size:10px;
+  font-size:11px;
   color:var(--text-muted);
 }
 .fm-total-ally span:first-child{ color:#50c878; }
